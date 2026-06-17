@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -62,7 +63,7 @@ fun DailyEntryFormScreen(
             TopAppBar(
                 title = { Text(if (entryId.isNullOrBlank()) "New Entry" else "Edit Entry") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
                 actions = {
                     if (isSaving) {
@@ -245,7 +246,7 @@ private fun ContextSection(context: EntryContext, onUpdate: (EntryContext) -> Un
             value = context.entryType.label, onValueChange = {}, readOnly = true,
             label = { Text("Entry Type") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showTypeDropdown) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(expanded = showTypeDropdown, onDismissRequest = { showTypeDropdown = false }) {
             EntryType.entries.forEach { type ->
