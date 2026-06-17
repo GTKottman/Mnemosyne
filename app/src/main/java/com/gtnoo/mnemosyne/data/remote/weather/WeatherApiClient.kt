@@ -1,5 +1,6 @@
 package com.gtnoo.mnemosyne.data.remote.weather
 
+import android.util.Log
 import com.gtnoo.mnemosyne.domain.model.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -9,6 +10,10 @@ class WeatherApiClient @Inject constructor(
     private val api: OpenMeteoApi
 ) {
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+    companion object {
+        private const val TAG = "WeatherApiClient"
+    }
 
     suspend fun fetchWeather(place: SavedPlace, date: LocalDate): WeatherSnapshot? {
         val lat = place.latitude ?: return null
@@ -42,6 +47,7 @@ class WeatherApiClient @Inject constructor(
                 season = date.toSeason()
             )
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch weather for place=${place.id} date=$date", e)
             null
         }
     }

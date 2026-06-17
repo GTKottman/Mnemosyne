@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -22,30 +23,20 @@ fun AddEditPlaceScreen(
     onBack: () -> Unit,
     viewModel: AddEditPlaceViewModel = hiltViewModel()
 ) {
-    val existingPlace by viewModel.place.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
-
-    var label by remember { mutableStateOf("") }
-    var placeType by remember { mutableStateOf(PlaceType.OTHER) }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var country by remember { mutableStateOf("") }
-    var latStr by remember { mutableStateOf("") }
-    var lngStr by remember { mutableStateOf("") }
-    var timezone by remember { mutableStateOf("America/Chicago") }
-    var notes by remember { mutableStateOf("") }
-    var showTypeDropdown by remember { mutableStateOf(false) }
+    val label by viewModel.label.collectAsStateWithLifecycle()
+    val placeType by viewModel.placeType.collectAsStateWithLifecycle()
+    val city by viewModel.city.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val country by viewModel.country.collectAsStateWithLifecycle()
+    val latStr by viewModel.latStr.collectAsStateWithLifecycle()
+    val lngStr by viewModel.lngStr.collectAsStateWithLifecycle()
+    val timezone by viewModel.timezone.collectAsStateWithLifecycle()
+    val notes by viewModel.notes.collectAsStateWithLifecycle()
+    var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(placeId) {
         if (!placeId.isNullOrBlank()) viewModel.loadPlace(placeId)
-    }
-
-    LaunchedEffect(existingPlace) {
-        existingPlace?.let { p ->
-            label = p.label; placeType = p.placeType; city = p.city; state = p.state
-            country = p.country; latStr = p.latitude?.toString() ?: ""; lngStr = p.longitude?.toString() ?: ""
-            timezone = p.timezone; notes = p.notes
-        }
     }
 
     LaunchedEffect(saved) { if (saved) onBack() }
@@ -71,7 +62,7 @@ fun AddEditPlaceScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = label, onValueChange = { label = it },
+                value = label, onValueChange = { viewModel.updateLabel(it) },
                 label = { Text("Place Name *") },
                 leadingIcon = { Icon(Icons.Default.Place, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true
@@ -87,50 +78,45 @@ fun AddEditPlaceScreen(
                 ExposedDropdownMenu(expanded = showTypeDropdown, onDismissRequest = { showTypeDropdown = false }) {
                     PlaceType.entries.forEach { type ->
                         DropdownMenuItem(text = { Text(type.label) }, onClick = {
-                            placeType = type; showTypeDropdown = false
+                            viewModel.updatePlaceType(type); showTypeDropdown = false
                         })
                     }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = city, onValueChange = { city = it },
+                OutlinedTextField(value = city, onValueChange = { viewModel.updateCity(it) },
                     label = { Text("City") }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(value = state, onValueChange = { state = it },
+                OutlinedTextField(value = state, onValueChange = { viewModel.updateState(it) },
                     label = { Text("State") }, modifier = Modifier.weight(0.6f), singleLine = true)
             }
-            OutlinedTextField(value = country, onValueChange = { country = it },
+            OutlinedTextField(value = country, onValueChange = { viewModel.updateCountry(it) },
                 label = { Text("Country") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             Text("Coordinates (for weather)", style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = latStr, onValueChange = { latStr = it },
+                    value = latStr, onValueChange = { viewModel.updateLatStr(it) },
                     label = { Text("Latitude") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f), singleLine = true
                 )
                 OutlinedTextField(
-                    value = lngStr, onValueChange = { lngStr = it },
+                    value = lngStr, onValueChange = { viewModel.updateLngStr(it) },
                     label = { Text("Longitude") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f), singleLine = true
                 )
             }
-            OutlinedTextField(value = timezone, onValueChange = { timezone = it },
+            OutlinedTextField(value = timezone, onValueChange = { viewModel.updateTimezone(it) },
                 label = { Text("Timezone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = notes, onValueChange = { notes = it },
+            OutlinedTextField(value = notes, onValueChange = { viewModel.updateNotes(it) },
                 label = { Text("Notes") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 3)
 
             Button(
                 onClick = {
-                    viewModel.savePlace(
-                        id = if (placeId.isNullOrBlank()) null else placeId,
-                        label = label, placeType = placeType, city = city, state = state,
-                        country = country, latitude = latStr.toDoubleOrNull(),
-                        longitude = lngStr.toDoubleOrNull(), timezone = timezone, notes = notes
-                    )
+                    viewModel.savePlace(id = if (placeId.isNullOrBlank()) null else placeId)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = label.isNotBlank()

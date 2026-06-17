@@ -78,6 +78,8 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
                 HomeScreen(
                     onNewEntry = { navController.navigate(Screen.DailyEntryForm.create()) },
                     onEntryClick = { navController.navigate(Screen.EntryDetail.create(it)) },
+                    onSettings = { navController.navigate(Screen.Settings.route) },
+                    onImportExport = { navController.navigate(Screen.ImportExport.route) },
                     onPersonClick = { navController.navigate(Screen.PersonDetail.create(it)) },
                     onHistory = { navController.navigate(Screen.EntryHistory.route) }
                 )

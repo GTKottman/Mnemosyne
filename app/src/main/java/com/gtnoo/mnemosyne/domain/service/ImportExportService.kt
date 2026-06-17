@@ -30,7 +30,7 @@ class ImportExportService @Inject constructor(
             entries = entryRepository.getAll(),
             people = personRepository.getAll(),
             places = placeRepository.getAll(),
-            weatherSnapshots = emptyList(),
+            weatherSnapshots = weatherRepository.getAll(),
             settings = settingsRepository.getSettings()
         )
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))

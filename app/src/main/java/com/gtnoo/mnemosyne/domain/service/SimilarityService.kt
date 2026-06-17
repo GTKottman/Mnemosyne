@@ -9,15 +9,27 @@ class SimilarityService @Inject constructor(
 ) {
     fun cosineSimilarity(a: DoubleArray, b: DoubleArray): Double {
         if (a.size != b.size) return 0.0
-        val dot = a.zip(b.toTypedArray()).sumOf { (x, y) -> x * y }
-        val normA = sqrt(a.sumOf { it * it })
-        val normB = sqrt(b.sumOf { it * it })
+        var dot = 0.0
+        var normA = 0.0
+        var normB = 0.0
+        for (i in a.indices) {
+            dot += a[i] * b[i]
+            normA += a[i] * a[i]
+            normB += b[i] * b[i]
+        }
+        normA = sqrt(normA)
+        normB = sqrt(normB)
         return if (normA == 0.0 || normB == 0.0) 0.0 else dot / (normA * normB)
     }
 
     fun euclideanDistance(a: DoubleArray, b: DoubleArray): Double {
         if (a.size != b.size) return Double.MAX_VALUE
-        return sqrt(a.zip(b.toTypedArray()).sumOf { (x, y) -> (x - y) * (x - y) })
+        var sum = 0.0
+        for (i in a.indices) {
+            val diff = a[i] - b[i]
+            sum += diff * diff
+        }
+        return sqrt(sum)
     }
 
     fun findSimilarEntries(

@@ -14,4 +14,7 @@ interface WeatherSnapshotDao {
 
     @Query("SELECT * FROM weather_snapshots WHERE placeId = :placeId AND date BETWEEN :start AND :end ORDER BY date DESC")
     suspend fun getBetweenDates(placeId: String, start: LocalDate, end: LocalDate): List<WeatherSnapshotEntity>
+
+    @Query("SELECT * FROM weather_snapshots ORDER BY date DESC")
+    suspend fun getAll(): List<WeatherSnapshotEntity>
 }

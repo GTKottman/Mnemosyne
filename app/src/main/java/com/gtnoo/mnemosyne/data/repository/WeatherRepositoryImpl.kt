@@ -23,4 +23,7 @@ class WeatherRepositoryImpl @Inject constructor(
         placeId: String, start: LocalDate, end: LocalDate
     ): List<WeatherSnapshot> =
         dao.getBetweenDates(placeId, start, end).map { it.toDomain() }
+
+    override suspend fun getAll(): List<WeatherSnapshot> =
+        dao.getAll().map { it.toDomain() }
 }

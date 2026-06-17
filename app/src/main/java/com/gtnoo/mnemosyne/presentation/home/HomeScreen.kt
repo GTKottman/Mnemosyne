@@ -26,13 +26,47 @@ fun HomeScreen(
     onEntryClick: (String) -> Unit,
     onPersonClick: (String) -> Unit,
     onHistory: () -> Unit,
+    onSettings: () -> Unit,
+    onImportExport: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val todayEntries by viewModel.todayEntries.collectAsStateWithLifecycle()
     val recentEntries by viewModel.recentEntries.collectAsStateWithLifecycle()
     val favoriteSummaries by viewModel.favoriteSummaries.collectAsStateWithLifecycle()
 
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                onClick = { showOverflowMenu = false; onSettings() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import / Export") },
+                                leadingIcon = { Icon(Icons.Default.SwapVert, contentDescription = null) },
+                                onClick = { showOverflowMenu = false; onImportExport() }
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNewEntry,

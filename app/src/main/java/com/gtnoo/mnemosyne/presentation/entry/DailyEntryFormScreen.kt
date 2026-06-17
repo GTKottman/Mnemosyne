@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -30,10 +31,13 @@ fun DailyEntryFormScreen(
     val allPlaces by viewModel.allPlaces.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
 
-    var showPersonPicker by remember { mutableStateOf(false) }
-    var showPlacePicker by remember { mutableStateOf(false) }
-    var tagInput by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var showPersonPicker by rememberSaveable { mutableStateOf(false) }
+    var showPlacePicker by rememberSaveable { mutableStateOf(false) }
+    var tagInput by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(entryId, date) {
         when {
@@ -45,7 +49,15 @@ fun DailyEntryFormScreen(
 
     LaunchedEffect(saved) { if (saved) onBack() }
 
+    LaunchedEffect(error) {
+        error?.let {
+            snackbarHostState.showSnackbar(message = it, duration = SnackbarDuration.Long)
+            viewModel.clearError()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (entryId.isNullOrBlank()) "New Entry" else "Edit Entry") },

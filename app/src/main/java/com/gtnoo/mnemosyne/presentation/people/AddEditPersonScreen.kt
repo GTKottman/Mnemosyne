@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,26 +22,15 @@ fun AddEditPersonScreen(
     onBack: () -> Unit,
     viewModel: AddEditPersonViewModel = hiltViewModel()
 ) {
-    val existingPerson by viewModel.person.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
-
-    var name by remember { mutableStateOf("") }
-    var relationshipType by remember { mutableStateOf(RelationshipType.FRIEND) }
-    var isFavorite by remember { mutableStateOf(false) }
-    var notes by remember { mutableStateOf("") }
-    var showTypeDropdown by remember { mutableStateOf(false) }
+    val name by viewModel.name.collectAsStateWithLifecycle()
+    val relationshipType by viewModel.relationshipType.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
+    val notes by viewModel.notes.collectAsStateWithLifecycle()
+    var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(personId) {
         if (!personId.isNullOrBlank()) viewModel.loadPerson(personId)
-    }
-
-    LaunchedEffect(existingPerson) {
-        existingPerson?.let { p ->
-            name = p.displayName
-            relationshipType = p.relationshipType
-            isFavorite = p.isFavorite
-            notes = p.notes
-        }
     }
 
     LaunchedEffect(saved) {
@@ -72,7 +62,7 @@ fun AddEditPersonScreen(
         ) {
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { viewModel.updateName(it) },
                 label = { Text("Name *") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
@@ -99,7 +89,7 @@ fun AddEditPersonScreen(
                         DropdownMenuItem(
                             text = { Text(type.label) },
                             onClick = {
-                                relationshipType = type
+                                viewModel.updateRelationshipType(type)
                                 showTypeDropdown = false
                             }
                         )
@@ -110,12 +100,12 @@ fun AddEditPersonScreen(
             SwitchField(
                 label = "Mark as Favorite",
                 checked = isFavorite,
-                onCheckedChange = { isFavorite = it }
+                onCheckedChange = { viewModel.updateIsFavorite(it) }
             )
 
             OutlinedTextField(
                 value = notes,
-                onValueChange = { notes = it },
+                onValueChange = { viewModel.updateNotes(it) },
                 label = { Text("Notes") },
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 maxLines = 4
@@ -125,11 +115,7 @@ fun AddEditPersonScreen(
                 onClick = {
                     viewModel.savePerson(
                         id = if (personId.isNullOrBlank()) null else personId,
-                        name = name,
-                        type = relationshipType,
-                        usualPlaceId = null,
-                        isFavorite = isFavorite,
-                        notes = notes
+                        usualPlaceId = null
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),

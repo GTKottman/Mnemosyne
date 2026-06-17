@@ -1,5 +1,6 @@
 package com.gtnoo.mnemosyne.di
 
+import com.gtnoo.mnemosyne.BuildConfig
 import com.gtnoo.mnemosyne.data.remote.weather.OpenMeteoApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
@@ -27,7 +28,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttp(): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+            }
+        }
         .build()
 
     @Provides

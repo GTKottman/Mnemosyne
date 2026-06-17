@@ -34,13 +34,22 @@ class DailyEntryFormViewModel @Inject constructor(
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private var initialized = false
+
     fun loadEntry(entryId: String) {
+        if (initialized) return
+        initialized = true
         viewModelScope.launch {
             entryService.getEntry(entryId)?.let { _entry.value = it }
         }
     }
 
     fun initForDate(date: LocalDate) {
+        if (initialized) return
+        initialized = true
         _entry.value = DailyEntry(entryDate = date)
     }
 
@@ -97,12 +106,19 @@ class DailyEntryFormViewModel @Inject constructor(
     fun saveEntry() {
         viewModelScope.launch {
             _isSaving.value = true
+            _error.value = null
             try {
                 entryService.saveEntry(_entry.value)
                 _saved.value = true
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to save entry"
             } finally {
                 _isSaving.value = false
             }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }
