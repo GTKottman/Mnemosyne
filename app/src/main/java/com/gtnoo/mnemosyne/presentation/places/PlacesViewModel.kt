@@ -2,6 +2,7 @@ package com.gtnoo.mnemosyne.presentation.places
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gtnoo.mnemosyne.data.remote.geocoding.GeocodingClient
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
 import com.gtnoo.mnemosyne.domain.service.PlaceService
@@ -27,7 +28,8 @@ class PlacesViewModel @Inject constructor(
 @HiltViewModel
 class AddEditPlaceViewModel @Inject constructor(
     private val placeRepository: PlaceRepository,
-    private val placeService: PlaceService
+    private val placeService: PlaceService,
+    private val geocodingClient: GeocodingClient
 ) : ViewModel() {
 
     private val _place = MutableStateFlow<SavedPlace?>(null)
@@ -74,6 +76,9 @@ class AddEditPlaceViewModel @Inject constructor(
     fun updateLngStr(value: String) { _lngStr.value = value }
     fun updateTimezone(value: String) { _timezone.value = value }
     fun updateNotes(value: String) { _notes.value = value }
+
+    suspend fun geocodeCity(city: String): Pair<Double, Double>? =
+        geocodingClient.geocode(city)
 
     fun loadPlace(id: String) {
         if (initialized) return

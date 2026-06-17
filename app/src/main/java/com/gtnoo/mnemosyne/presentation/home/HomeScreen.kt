@@ -37,10 +37,33 @@ fun HomeScreen(
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                actions = {
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNewEntry,
+                icon = { Icon(Icons.Default.Add, "New Entry") },
+                text = { Text("New Entry") }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text("Mnemosyne", style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Light)
+                        Text(
+                            LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More options")
@@ -61,33 +84,6 @@ fun HomeScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNewEntry,
-                icon = { Icon(Icons.Default.Add, "New Entry") },
-                text = { Text("New Entry") }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Column(modifier = Modifier.padding(top = 24.dp)) {
-                    Text("Mnemosyne", style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Light)
-                    Text(
-                        LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
 

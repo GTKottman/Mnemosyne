@@ -82,6 +82,9 @@ dependencies {
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
 
+    // Map
+    implementation(libs.osmdroid)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

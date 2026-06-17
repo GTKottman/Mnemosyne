@@ -2,7 +2,6 @@ package com.gtnoo.mnemosyne.presentation.places
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -10,11 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gtnoo.mnemosyne.domain.model.PlaceType
+import com.gtnoo.mnemosyne.ui.components.LocationPickerDialog
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +34,12 @@ fun AddEditPlaceScreen(
     val timezone by viewModel.timezone.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
+    var showMapPicker by remember { mutableStateOf(false) }
+    var mapInitialLat by remember { mutableStateOf<Double?>(null) }
+    var mapInitialLng by remember { mutableStateOf<Double?>(null) }
+    val scope = rememberCoroutineScope()
+
+    val hasCoords = latStr.toDoubleOrNull() != null && lngStr.toDoubleOrNull() != null
 
     LaunchedEffect(placeId) {
         if (!placeId.isNullOrBlank()) viewModel.loadPlace(placeId)
@@ -93,20 +99,35 @@ fun AddEditPlaceScreen(
             OutlinedTextField(value = country, onValueChange = { viewModel.updateCountry(it) },
                 label = { Text("Country") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
-            Text("Coordinates (for weather)", style = MaterialTheme.typography.labelLarge,
+            Text("Location (for weather)", style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = latStr, onValueChange = { viewModel.updateLatStr(it) },
-                    label = { Text("Latitude") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f), singleLine = true
-                )
-                OutlinedTextField(
-                    value = lngStr, onValueChange = { viewModel.updateLngStr(it) },
-                    label = { Text("Longitude") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f), singleLine = true
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        mapInitialLat = latStr.toDoubleOrNull()
+                        mapInitialLng = lngStr.toDoubleOrNull()
+                        if (mapInitialLat == null && city.isNotBlank()) {
+                            val coords = viewModel.geocodeCity(city)
+                            mapInitialLat = coords?.first
+                            mapInitialLng = coords?.second
+                        }
+                        showMapPicker = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PinDrop, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (hasCoords) "Change pinned location" else "Pin on map")
+            }
+            if (hasCoords) {
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Location pinned") },
+                    leadingIcon = {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null,
+                            modifier = Modifier.size(AssistChipDefaults.IconSize))
+                    }
                 )
             }
             OutlinedTextField(value = timezone, onValueChange = { viewModel.updateTimezone(it) },
@@ -126,5 +147,19 @@ fun AddEditPlaceScreen(
                 Text("Save Place")
             }
         }
+    }
+
+    if (showMapPicker) {
+        LocationPickerDialog(
+            initialLat = mapInitialLat,
+            initialLng = mapInitialLng,
+            cityHint = city,
+            onConfirm = { lat, lng ->
+                viewModel.updateLatStr(lat.toString())
+                viewModel.updateLngStr(lng.toString())
+                showMapPicker = false
+            },
+            onDismiss = { showMapPicker = false }
+        )
     }
 }

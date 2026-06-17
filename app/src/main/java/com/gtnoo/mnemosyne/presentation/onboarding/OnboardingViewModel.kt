@@ -2,6 +2,7 @@ package com.gtnoo.mnemosyne.presentation.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gtnoo.mnemosyne.data.remote.geocoding.GeocodingClient
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.SettingsRepository
 import com.gtnoo.mnemosyne.domain.service.PersonService
@@ -17,7 +18,8 @@ import javax.inject.Inject
 class OnboardingViewModel @Inject constructor(
     private val placeService: PlaceService,
     private val personService: PersonService,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val geocodingClient: GeocodingClient
 ) : ViewModel() {
 
     private val _completed = MutableStateFlow(false)
@@ -59,6 +61,9 @@ class OnboardingViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun geocodeCity(city: String): Pair<Double, Double>? =
+        geocodingClient.geocode(city)
 
     fun skipOnboarding() {
         viewModelScope.launch {
