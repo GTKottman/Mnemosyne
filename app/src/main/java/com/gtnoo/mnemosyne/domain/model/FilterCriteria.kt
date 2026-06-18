@@ -8,7 +8,7 @@ data class FilterCriteria(
     val personId: String? = null,
     val placeId: String? = null,
     val tags: List<String> = emptyList(),
-    val minAnxiety: Int? = null,
+    val maxHappiness: Int? = null,
     val minConnection: Int? = null,
     val onlyDaysWithInteractions: Boolean = false,
     val onlyHighRuminationDays: Boolean = false,

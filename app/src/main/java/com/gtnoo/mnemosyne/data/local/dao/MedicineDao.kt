@@ -41,6 +41,9 @@ interface MedicineDao {
     @Query("SELECT * FROM medicine_bottles WHERE medicineId = :medicineId AND isCurrentBottle = 1 LIMIT 1")
     suspend fun getCurrentBottle(medicineId: String): MedicineBottleEntity?
 
+    @Query("SELECT * FROM medicine_bottles WHERE isCurrentBottle = 1")
+    fun observeCurrentBottles(): Flow<List<MedicineBottleEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBottle(entity: MedicineBottleEntity)
 
@@ -61,7 +64,10 @@ interface MedicineDao {
     @Query("SELECT * FROM medicine_doses WHERE medicineId = :medicineId AND date = :date LIMIT 1")
     suspend fun getDoseForMedicineOnDate(medicineId: String, date: LocalDate): MedicineDoseEntity?
 
-    @Query("SELECT * FROM medicine_doses WHERE medicineId = :medicineId ORDER BY date DESC")
+    @Query("SELECT * FROM medicine_doses WHERE medicineId = :medicineId AND date = :date ORDER BY taken_at ASC")
+    fun observeDosesForMedicineOnDate(medicineId: String, date: LocalDate): Flow<List<MedicineDoseEntity>>
+
+    @Query("SELECT * FROM medicine_doses WHERE medicineId = :medicineId ORDER BY date DESC, taken_at DESC")
     suspend fun getAllDosesForMedicine(medicineId: String): List<MedicineDoseEntity>
 
     @Query("SELECT * FROM medicine_doses ORDER BY date DESC")
@@ -70,7 +76,7 @@ interface MedicineDao {
     @Query("SELECT * FROM medicine_bottles ORDER BY openedDate DESC")
     suspend fun getAllBottles(): List<MedicineBottleEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertDose(entity: MedicineDoseEntity)
 
     @Query("DELETE FROM medicine_doses WHERE id = :id")

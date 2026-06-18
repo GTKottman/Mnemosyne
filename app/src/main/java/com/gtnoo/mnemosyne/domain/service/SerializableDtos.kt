@@ -4,6 +4,7 @@ import com.gtnoo.mnemosyne.domain.model.*
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 
 @Serializable
 data class SerializableBackup(
@@ -55,9 +56,10 @@ data class SerializableEntry(
     val id: String, val entryDate: String, val freeformNotes: String,
     val tags: List<String>, val interactions: List<SerializableInteraction>,
     val placesVisitedIds: List<String>,
-    val emotionHopeful: Int, val emotionAnxious: Int, val emotionSad: Int,
-    val emotionHappy: Int, val emotionCalm: Int, val emotionLonely: Int,
-    val emotionExcited: Int, val emotionConnected: Int, val emotionRegulated: Int
+    val emotionHappiness: Int, val emotionSafety: Int, val emotionCalm: Int,
+    val emotionConnection: Int, val emotionClarity: Int, val emotionCapacity: Int,
+    val emotionHope: Int, val emotionWorthiness: Int, val emotionPeace: Int,
+    val emotionEnergy: Int, val emotionAgency: Int, val emotionPresence: Int
 ) {
     fun toDomain(people: List<Person>, places: List<SavedPlace>): DailyEntry {
         val placesMap = places.associateBy { it.id }
@@ -67,9 +69,10 @@ data class SerializableEntry(
             freeformNotes = freeformNotes,
             tags = tags,
             emotionData = EmotionData(
-                hopeful = emotionHopeful, anxious = emotionAnxious, sad = emotionSad,
-                happy = emotionHappy, calm = emotionCalm, lonely = emotionLonely,
-                excited = emotionExcited, connected = emotionConnected, regulated = emotionRegulated
+                happiness = emotionHappiness, safety = emotionSafety, calm = emotionCalm,
+                connection = emotionConnection, clarity = emotionClarity, capacity = emotionCapacity,
+                hope = emotionHope, worthiness = emotionWorthiness, peace = emotionPeace,
+                energy = emotionEnergy, agency = emotionAgency, presence = emotionPresence
             ),
             interactions = emptyList(),
             placesVisited = placesVisitedIds.mapNotNull { placesMap[it] }
@@ -117,9 +120,18 @@ data class SerializableMedicine(
     val id: String,
     val name: String,
     val notes: String,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val reminderTime: String? = null,
+    val notifyEnabled: Boolean = false
 ) {
-    fun toDomain() = Medicine(id = id, name = name, notes = notes, isActive = isActive)
+    fun toDomain() = Medicine(
+        id = id,
+        name = name,
+        notes = notes,
+        isActive = isActive,
+        reminderTime = reminderTime?.let { LocalTime.parse(it) },
+        notifyEnabled = notifyEnabled
+    )
 }
 
 @Serializable
@@ -149,14 +161,16 @@ data class SerializableMedicineDose(
     val medicineId: String,
     val bottleId: String,
     val date: String,
-    val pillsTaken: Int
+    val pillsTaken: Int,
+    val takenAt: String? = null
 ) {
     fun toDomain() = MedicineDose(
         id = id,
         medicineId = medicineId,
         bottleId = bottleId,
         date = LocalDate.parse(date),
-        pillsTaken = pillsTaken
+        pillsTaken = pillsTaken,
+        takenAt = takenAt?.let { LocalDateTime.parse(it) }
     )
 }
 
@@ -169,15 +183,18 @@ fun AppBackup.toSerializable() = SerializableBackup(
                 SerializableInteraction(i.id, i.person.id, i.mode.name, i.notes)
             },
             placesVisitedIds = entry.placesVisited.map { it.id },
-            emotionHopeful = entry.emotionData.hopeful,
-            emotionAnxious = entry.emotionData.anxious,
-            emotionSad = entry.emotionData.sad,
-            emotionHappy = entry.emotionData.happy,
+            emotionHappiness = entry.emotionData.happiness,
+            emotionSafety = entry.emotionData.safety,
             emotionCalm = entry.emotionData.calm,
-            emotionLonely = entry.emotionData.lonely,
-            emotionExcited = entry.emotionData.excited,
-            emotionConnected = entry.emotionData.connected,
-            emotionRegulated = entry.emotionData.regulated
+            emotionConnection = entry.emotionData.connection,
+            emotionClarity = entry.emotionData.clarity,
+            emotionCapacity = entry.emotionData.capacity,
+            emotionHope = entry.emotionData.hope,
+            emotionWorthiness = entry.emotionData.worthiness,
+            emotionPeace = entry.emotionData.peace,
+            emotionEnergy = entry.emotionData.energy,
+            emotionAgency = entry.emotionData.agency,
+            emotionPresence = entry.emotionData.presence
         )
     },
     people = people.map { p ->
@@ -202,13 +219,27 @@ fun AppBackup.toSerializable() = SerializableBackup(
         )
     },
     medicines = medicines.map { m ->
-        SerializableMedicine(m.id, m.name, m.notes, m.isActive)
+        SerializableMedicine(
+            id = m.id,
+            name = m.name,
+            notes = m.notes,
+            isActive = m.isActive,
+            reminderTime = m.reminderTime?.toString(),
+            notifyEnabled = m.notifyEnabled
+        )
     },
     medicineBottles = medicineBottles.map { b ->
         SerializableMedicineBottle(b.id, b.medicineId, b.mgPerPill, b.pillsTotal, b.pillsRemaining, b.openedDate.toString(), b.isCurrentBottle)
     },
     medicineDoses = medicineDoses.map { d ->
-        SerializableMedicineDose(d.id, d.medicineId, d.bottleId, d.date.toString(), d.pillsTaken)
+        SerializableMedicineDose(
+            id = d.id,
+            medicineId = d.medicineId,
+            bottleId = d.bottleId,
+            date = d.date.toString(),
+            pillsTaken = d.pillsTaken,
+            takenAt = d.takenAt?.toString()
+        )
     },
     exportedAt = exportedAt.toString(),
     appVersion = appVersion

@@ -52,6 +52,24 @@ class WeatherApiClient @Inject constructor(
         }
     }
 
+    suspend fun fetchCurrentWeather(place: SavedPlace): Pair<Double, WeatherCondition>? {
+        val lat = place.latitude ?: return null
+        val lng = place.longitude ?: return null
+        return try {
+            val response = api.getCurrentWeather(
+                latitude = lat,
+                longitude = lng,
+                timezone = place.timezone.ifBlank { "auto" }
+            )
+            val cw = response.currentWeather ?: return null
+            val temp = cw.temperature ?: return null
+            Pair(temp, mapWeatherCode(cw.weathercode))
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch current weather for place=${place.id}", e)
+            null
+        }
+    }
+
     private fun mapWeatherCode(code: Int?): WeatherCondition = when (code) {
         0 -> WeatherCondition.SUNNY
         in 1..3 -> WeatherCondition.CLOUDY

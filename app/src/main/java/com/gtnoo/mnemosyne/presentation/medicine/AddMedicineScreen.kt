@@ -1,18 +1,24 @@
 package com.gtnoo.mnemosyne.presentation.medicine
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,10 +31,14 @@ fun AddMedicineScreen(
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val mgPerPill by viewModel.mgPerPill.collectAsStateWithLifecycle()
     val totalPills by viewModel.totalPills.collectAsStateWithLifecycle()
+    val reminderTime by viewModel.reminderTime.collectAsStateWithLifecycle()
+    val notifyEnabled by viewModel.notifyEnabled.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isEditing = !medicineId.isNullOrBlank()
+
+    var showTimePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(medicineId) {
         if (!medicineId.isNullOrBlank()) viewModel.loadMedicine(medicineId)
@@ -39,6 +49,17 @@ fun AddMedicineScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
         }
+    }
+
+    if (showTimePicker) {
+        ReminderTimePickerDialog(
+            initialTime = reminderTime ?: LocalTime.of(8, 0),
+            onDismiss = { showTimePicker = false },
+            onConfirm = { time ->
+                viewModel.updateReminderTime(time)
+                showTimePicker = false
+            }
+        )
     }
 
     Scaffold(
@@ -93,6 +114,73 @@ fun AddMedicineScreen(
                 maxLines = 4
             )
 
+            HorizontalDivider()
+
+            Text("Reminders", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+            OutlinedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTimePicker = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Column {
+                            Text("Reminder time", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (reminderTime != null)
+                                    reminderTime!!.format(DateTimeFormatter.ofPattern("h:mm a"))
+                                else "Tap to set a time",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (reminderTime != null) {
+                        IconButton(onClick = { viewModel.updateReminderTime(null) }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear reminder time", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Enable reminder notification", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        if (reminderTime != null)
+                            "Notify me daily to take this medicine"
+                        else
+                            "Set a reminder time first",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = notifyEnabled,
+                    onCheckedChange = { viewModel.updateNotifyEnabled(it) },
+                    enabled = reminderTime != null
+                )
+            }
+
             if (!isEditing) {
                 HorizontalDivider()
 
@@ -122,4 +210,43 @@ fun AddMedicineScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimePickerDialog(
+    initialTime: LocalTime,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalTime) -> Unit
+) {
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialTime.hour,
+        initialMinute = initialTime.minute,
+        is24Hour = false
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set reminder time") },
+        text = {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                TimePicker(state = timePickerState)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(LocalTime.of(timePickerState.hour, timePickerState.minute))
+            }) {
+                Text("Set")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

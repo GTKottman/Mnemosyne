@@ -11,6 +11,19 @@ data class OpenMeteoResponse(
 )
 
 @Serializable
+data class OpenMeteoCurrentWeatherResponse(
+    @SerialName("current_weather") val currentWeather: OpenMeteoCurrentWeatherData? = null
+)
+
+@Serializable
+data class OpenMeteoCurrentWeatherData(
+    @SerialName("temperature") val temperature: Double? = null,
+    @SerialName("windspeed") val windspeed: Double? = null,
+    @SerialName("weathercode") val weathercode: Int? = null,
+    @SerialName("time") val time: String? = null
+)
+
+@Serializable
 data class OpenMeteoDailyData(
     @SerialName("time") val time: List<String> = emptyList(),
     @SerialName("temperature_2m_max") val tempMax: List<Double?> = emptyList(),
@@ -33,4 +46,12 @@ interface OpenMeteoApi {
         @Query("end_date") endDate: String,
         @Query("timezone") timezone: String = "auto"
     ): OpenMeteoResponse
+
+    @GET("v1/forecast")
+    suspend fun getCurrentWeather(
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double,
+        @Query("current_weather") currentWeather: Boolean = true,
+        @Query("timezone") timezone: String = "auto"
+    ): OpenMeteoCurrentWeatherResponse
 }

@@ -45,6 +45,12 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateSettings(settings.value.copy(autoFetchWeather = enabled))
         }
     }
+
+    fun setUseFahrenheit(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateSettings(settings.value.copy(useFahrenheit = enabled))
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,6 +116,13 @@ fun SettingsScreen(
                     label = "Auto-fetch weather on save",
                     checked = settings.autoFetchWeather,
                     onCheckedChange = { viewModel.setAutoFetchWeather(it) }
+                )
+            }
+            item {
+                SwitchField(
+                    label = "Use Fahrenheit",
+                    checked = settings.useFahrenheit,
+                    onCheckedChange = { viewModel.setUseFahrenheit(it) }
                 )
             }
             item {

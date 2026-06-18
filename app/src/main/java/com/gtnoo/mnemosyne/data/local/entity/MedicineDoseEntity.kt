@@ -1,5 +1,6 @@
 package com.gtnoo.mnemosyne.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -8,6 +9,7 @@ import androidx.room.TypeConverters
 import com.gtnoo.mnemosyne.data.local.converter.Converters
 import com.gtnoo.mnemosyne.domain.model.MedicineDose
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Entity(
     tableName = "medicine_doses",
@@ -33,14 +35,16 @@ data class MedicineDoseEntity(
     val medicineId: String,
     val bottleId: String,
     val date: LocalDate,
-    val pillsTaken: Int
+    val pillsTaken: Int,
+    @ColumnInfo(name = "taken_at") val takenAt: LocalDateTime? = null
 ) {
     fun toDomain() = MedicineDose(
         id = id,
         medicineId = medicineId,
         bottleId = bottleId,
         date = date,
-        pillsTaken = pillsTaken
+        pillsTaken = pillsTaken,
+        takenAt = takenAt
     )
 
     companion object {
@@ -49,7 +53,8 @@ data class MedicineDoseEntity(
             medicineId = dose.medicineId,
             bottleId = dose.bottleId,
             date = dose.date,
-            pillsTaken = dose.pillsTaken
+            pillsTaken = dose.pillsTaken,
+            takenAt = dose.takenAt
         )
     }
 }

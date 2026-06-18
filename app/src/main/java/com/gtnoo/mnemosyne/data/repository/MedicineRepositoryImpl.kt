@@ -41,6 +41,9 @@ class MedicineRepositoryImpl @Inject constructor(
     override fun observeBottlesForMedicine(medicineId: String): Flow<List<MedicineBottle>> =
         medicineDao.observeBottlesForMedicine(medicineId).map { it.map(MedicineBottleEntity::toDomain) }
 
+    override fun observeCurrentBottles(): Flow<List<MedicineBottle>> =
+        medicineDao.observeCurrentBottles().map { it.map(MedicineBottleEntity::toDomain) }
+
     override suspend fun getCurrentBottle(medicineId: String): MedicineBottle? =
         medicineDao.getCurrentBottle(medicineId)?.toDomain()
 
@@ -55,6 +58,9 @@ class MedicineRepositoryImpl @Inject constructor(
 
     override fun observeDosesForDate(date: LocalDate): Flow<List<MedicineDose>> =
         medicineDao.observeDosesForDate(date).map { it.map(MedicineDoseEntity::toDomain) }
+
+    override fun observeDosesForMedicineOnDate(medicineId: String, date: LocalDate): Flow<List<MedicineDose>> =
+        medicineDao.observeDosesForMedicineOnDate(medicineId, date).map { it.map(MedicineDoseEntity::toDomain) }
 
     override suspend fun getDosesForDate(date: LocalDate): List<MedicineDose> =
         medicineDao.getDosesForDate(date).map(MedicineDoseEntity::toDomain)

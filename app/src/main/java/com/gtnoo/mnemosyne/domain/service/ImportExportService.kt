@@ -83,11 +83,14 @@ class ImportExportService @Inject constructor(
     suspend fun exportToCsv(): File {
         val entries = entryRepository.getAll()
         val sb = StringBuilder()
-        sb.appendLine("date,anxious,happy,calm,connected,energy,sleep,interactions")
+        sb.appendLine("date,happiness,safety,calm,connection,clarity,capacity,hope,worthiness,peace,energy,agency,presence,health_energy,sleep,interactions")
         entries.forEach { entry ->
             sb.appendLine(
-                "${entry.entryDate},${entry.emotionData.anxious},${entry.emotionData.happy}," +
-                "${entry.emotionData.calm},${entry.emotionData.connected}," +
+                "${entry.entryDate}," +
+                "${entry.emotionData.happiness},${entry.emotionData.safety},${entry.emotionData.calm}," +
+                "${entry.emotionData.connection},${entry.emotionData.clarity},${entry.emotionData.capacity}," +
+                "${entry.emotionData.hope},${entry.emotionData.worthiness},${entry.emotionData.peace}," +
+                "${entry.emotionData.energy},${entry.emotionData.agency},${entry.emotionData.presence}," +
                 "${entry.healthContextData.energyLevel},${entry.healthContextData.hoursSlept}," +
                 "${entry.interactions.size}"
             )

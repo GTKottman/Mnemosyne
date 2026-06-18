@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gtnoo.mnemosyne.domain.model.*
+import com.gtnoo.mnemosyne.presentation.settings.SettingsViewModel
 import com.gtnoo.mnemosyne.ui.components.*
 import java.time.LocalDate
 
@@ -27,14 +28,13 @@ fun DailyEntryFormScreen(
     onBack: () -> Unit,
     onNewInteraction: (date: String) -> Unit,
     onInteractionClick: (interactionId: String) -> Unit,
-    onManageMedicines: () -> Unit = {},
-    viewModel: DailyEntryFormViewModel = hiltViewModel()
+    viewModel: DailyEntryFormViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val entry by viewModel.entry.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
     val allPlaces by viewModel.allPlaces.collectAsStateWithLifecycle()
     val interactions by viewModel.interactionsForDate.collectAsStateWithLifecycle()
-    val activeMedicinesWithBottles by viewModel.activeMedicinesWithBottles.collectAsStateWithLifecycle()
-    val dosedMedicineIds by viewModel.dosedMedicineIdsForDate.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -163,56 +163,7 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 6: Medications & Supplements
-            item {
-                CollapsibleSection("Medications & Supplements") {
-                    if (activeMedicinesWithBottles.isEmpty()) {
-                        Text(
-                            "No active medicines set up.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        activeMedicinesWithBottles.forEach { mwb ->
-                            val taken = mwb.medicine.id in dosedMedicineIds
-                            val outOfStock = mwb.currentBottle?.let { it.pillsRemaining <= 0 } ?: true
-                            Row(
-                                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                            ) {
-                                Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
-                                    Text(mwb.medicine.name, style = MaterialTheme.typography.bodyMedium)
-                                    mwb.currentBottle?.let {
-                                        Text(
-                                            "${it.mgPerPill}mg  \u2022  ${it.pillsRemaining} left",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (it.pillsRemaining <= 7) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                Checkbox(
-                                    checked = taken,
-                                    onCheckedChange = {
-                                        if (!outOfStock || taken) viewModel.toggleDose(mwb.medicine.id)
-                                    },
-                                    enabled = !outOfStock || taken
-                                )
-                            }
-                        }
-                    }
-                    TextButton(
-                        onClick = onManageMedicines,
-                        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Medication, contentDescription = null, modifier = androidx.compose.ui.Modifier.size(16.dp))
-                        Spacer(androidx.compose.ui.Modifier.width(6.dp))
-                        Text("Manage Medicines")
-                    }
-                }
-            }
-
-            // Section 8: Places Visited
+            // Section 7: Places Visited
             item {
                 CollapsibleSection("Places Visited") {
                     if (entry.placesVisited.isNotEmpty()) {
@@ -235,7 +186,7 @@ fun DailyEntryFormScreen(
                 item {
                     CollapsibleSection("Weather", initiallyExpanded = true) {
                         entry.weatherSnapshots.forEach { snapshot ->
-                            WeatherCard(snapshot = snapshot)
+                            WeatherCard(snapshot = snapshot, useFahrenheit = settings.useFahrenheit)
                         }
                     }
                 }
@@ -343,18 +294,18 @@ private fun ContextSection(
 
 @Composable
 private fun EmotionSection(emotion: EmotionData, onUpdate: (EmotionData) -> Unit) {
-    SliderField("Hopeful", emotion.hopeful) { onUpdate(emotion.copy(hopeful = it)) }
-    SliderField("Anxious", emotion.anxious) { onUpdate(emotion.copy(anxious = it)) }
-    SliderField("Sad", emotion.sad) { onUpdate(emotion.copy(sad = it)) }
-    SliderField("Happy", emotion.happy) { onUpdate(emotion.copy(happy = it)) }
-    SliderField("Calm", emotion.calm) { onUpdate(emotion.copy(calm = it)) }
-    SliderField("Lonely", emotion.lonely) { onUpdate(emotion.copy(lonely = it)) }
-    SliderField("Excited", emotion.excited) { onUpdate(emotion.copy(excited = it)) }
-    SliderField("Confused", emotion.confused) { onUpdate(emotion.copy(confused = it)) }
-    SliderField("Secure", emotion.secure) { onUpdate(emotion.copy(secure = it)) }
-    SliderField("Connected", emotion.connected) { onUpdate(emotion.copy(connected = it)) }
-    SliderField("Overwhelmed", emotion.overwhelmed) { onUpdate(emotion.copy(overwhelmed = it)) }
-    SliderField("Regulated", emotion.regulated) { onUpdate(emotion.copy(regulated = it)) }
+    SliderField("", emotion.happiness, leftLabel = "Sadness", rightLabel = "Happiness") { onUpdate(emotion.copy(happiness = it)) }
+    SliderField("", emotion.safety, leftLabel = "Threat", rightLabel = "Safety") { onUpdate(emotion.copy(safety = it)) }
+    SliderField("", emotion.calm, leftLabel = "Agitation", rightLabel = "Calm") { onUpdate(emotion.copy(calm = it)) }
+    SliderField("", emotion.connection, leftLabel = "Isolation", rightLabel = "Connection") { onUpdate(emotion.copy(connection = it)) }
+    SliderField("", emotion.clarity, leftLabel = "Confusion", rightLabel = "Clarity") { onUpdate(emotion.copy(clarity = it)) }
+    SliderField("", emotion.capacity, leftLabel = "Overwhelm", rightLabel = "Capacity") { onUpdate(emotion.copy(capacity = it)) }
+    SliderField("", emotion.hope, leftLabel = "Hopelessness", rightLabel = "Hope") { onUpdate(emotion.copy(hope = it)) }
+    SliderField("", emotion.worthiness, leftLabel = "Shame", rightLabel = "Worthiness") { onUpdate(emotion.copy(worthiness = it)) }
+    SliderField("", emotion.peace, leftLabel = "Anger", rightLabel = "Peace") { onUpdate(emotion.copy(peace = it)) }
+    SliderField("", emotion.energy, leftLabel = "Exhaustion", rightLabel = "Energy") { onUpdate(emotion.copy(energy = it)) }
+    SliderField("", emotion.agency, leftLabel = "Helplessness", rightLabel = "Agency") { onUpdate(emotion.copy(agency = it)) }
+    SliderField("", emotion.presence, leftLabel = "Numbness", rightLabel = "Presence") { onUpdate(emotion.copy(presence = it)) }
 }
 
 @Composable

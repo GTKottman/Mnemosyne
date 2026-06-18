@@ -19,6 +19,7 @@ class SettingsRepositoryImpl @Inject constructor(
     private object Keys {
         val HOME_PLACE_ID = stringPreferencesKey("home_place_id")
         val AUTO_FETCH_WEATHER = booleanPreferencesKey("auto_fetch_weather")
+        val USE_FAHRENHEIT = booleanPreferencesKey("use_fahrenheit")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val APP_VERSION = stringPreferencesKey("app_version")
     }
@@ -27,6 +28,7 @@ class SettingsRepositoryImpl @Inject constructor(
         AppSettings(
             homePlaceId = prefs[Keys.HOME_PLACE_ID],
             autoFetchWeather = prefs[Keys.AUTO_FETCH_WEATHER] ?: true,
+            useFahrenheit = prefs[Keys.USE_FAHRENHEIT] ?: false,
             onboardingComplete = prefs[Keys.ONBOARDING_COMPLETE] ?: false,
             appVersion = prefs[Keys.APP_VERSION] ?: "0.1.0"
         )
@@ -39,6 +41,7 @@ class SettingsRepositoryImpl @Inject constructor(
             settings.homePlaceId?.let { prefs[Keys.HOME_PLACE_ID] = it }
                 ?: prefs.remove(Keys.HOME_PLACE_ID)
             prefs[Keys.AUTO_FETCH_WEATHER] = settings.autoFetchWeather
+            prefs[Keys.USE_FAHRENHEIT] = settings.useFahrenheit
             prefs[Keys.ONBOARDING_COMPLETE] = settings.onboardingComplete
             prefs[Keys.APP_VERSION] = settings.appVersion
         }

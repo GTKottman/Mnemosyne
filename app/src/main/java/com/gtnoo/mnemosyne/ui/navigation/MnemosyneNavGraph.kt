@@ -138,8 +138,7 @@ fun MnemosyneNavGraph(
                     date = date,
                     onBack = { navController.popBackStack() },
                     onNewInteraction = { d -> navController.navigate(Screen.InteractionForm.create(date = d)) },
-                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) },
-                    onManageMedicines = { navController.navigate(Screen.MedicineList.route) }
+                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) }
                 )
             }
             composable(

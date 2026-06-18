@@ -65,19 +65,48 @@ fun SliderField(
     value: Int,
     modifier: Modifier = Modifier,
     range: IntRange = 0..10,
+    leftLabel: String? = null,
+    rightLabel: String? = null,
     onValueChange: (Int) -> Unit
 ) {
     Column(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                value.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+        if (leftLabel != null && rightLabel != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    leftLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    value.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    rightLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(label, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    value.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Slider(
             value = value.toFloat(),
@@ -106,8 +135,21 @@ fun SwitchField(
     }
 }
 
+fun formatTemperature(celsius: Double, useFahrenheit: Boolean): String {
+    val (value, unit) = if (useFahrenheit) {
+        celsius * 9.0 / 5.0 + 32 to "°F"
+    } else {
+        celsius to "°C"
+    }
+    return "${value.toInt()}$unit avg"
+}
+
 @Composable
-fun WeatherCard(snapshot: WeatherSnapshot, modifier: Modifier = Modifier) {
+fun WeatherCard(
+    snapshot: WeatherSnapshot,
+    modifier: Modifier = Modifier,
+    useFahrenheit: Boolean = false
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -125,7 +167,7 @@ fun WeatherCard(snapshot: WeatherSnapshot, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 snapshot.temperatureAverage?.let {
-                    Text("${it.toInt()}°C avg", style = MaterialTheme.typography.bodySmall)
+                    Text(formatTemperature(it, useFahrenheit), style = MaterialTheme.typography.bodySmall)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -197,8 +239,8 @@ fun EntryCard(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                EmotionPill("Anx", entry.emotionData.anxious)
-                EmotionPill("Happy", entry.emotionData.happy)
+                EmotionPill("Mood", entry.emotionData.happiness)
+                EmotionPill("Calm", entry.emotionData.calm)
                 EmotionPill("Energy", entry.healthContextData.energyLevel)
             }
         }

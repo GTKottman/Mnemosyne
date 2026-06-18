@@ -23,7 +23,7 @@ import com.gtnoo.mnemosyne.data.local.entity.*
         MedicineBottleEntity::class,
         MedicineDoseEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -198,6 +198,101 @@ abstract class MnemosyneDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_medicine_doses_medicineId ON medicine_doses (medicineId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_medicine_doses_date ON medicine_doses (date)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_medicine_doses_bottleId ON medicine_doses (bottleId)")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicines ADD COLUMN reminder_time TEXT")
+                db.execSQL("ALTER TABLE medicines ADD COLUMN notify_enabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE medicine_doses ADD COLUMN taken_at TEXT")
+            }
+        }
+
+        // Replaces 14 separate emotion columns with 12 bipolar-axis columns (0=distress, 5=neutral, 10=supportive).
+        // Old values are mapped where a clear directional equivalent exists; others default to 5 (neutral).
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE daily_entries_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        entryDate TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        lastEditedAt TEXT NOT NULL,
+                        freeformNotes TEXT NOT NULL,
+                        tags TEXT NOT NULL,
+                        contextEntryType TEXT NOT NULL,
+                        contextSchoolDay INTEGER NOT NULL,
+                        contextWorkDay INTEGER NOT NULL,
+                        contextWeekend INTEGER NOT NULL,
+                        contextHoliday INTEGER NOT NULL,
+                        contextVacation INTEGER NOT NULL,
+                        emotionHappiness INTEGER NOT NULL,
+                        emotionSafety INTEGER NOT NULL,
+                        emotionCalm INTEGER NOT NULL,
+                        emotionConnection INTEGER NOT NULL,
+                        emotionClarity INTEGER NOT NULL,
+                        emotionCapacity INTEGER NOT NULL,
+                        emotionHope INTEGER NOT NULL,
+                        emotionWorthiness INTEGER NOT NULL,
+                        emotionPeace INTEGER NOT NULL,
+                        emotionEnergy INTEGER NOT NULL,
+                        emotionAgency INTEGER NOT NULL,
+                        emotionPresence INTEGER NOT NULL,
+                        thoughtRuminationLevel INTEGER NOT NULL,
+                        thoughtCheckedPhone INTEGER NOT NULL,
+                        thoughtRereadMessages INTEGER NOT NULL,
+                        thoughtImaginedNegative INTEGER NOT NULL,
+                        thoughtImaginedPositive INTEGER NOT NULL,
+                        thoughtNeedReassurance INTEGER NOT NULL,
+                        thoughtClarityLevel INTEGER NOT NULL,
+                        thoughtUncertaintyLevel INTEGER NOT NULL,
+                        thoughtWantedToPullAway INTEGER NOT NULL,
+                        thoughtWantedToReachOut INTEGER NOT NULL,
+                        healthHoursSlept REAL NOT NULL,
+                        healthAteEnough INTEGER NOT NULL,
+                        healthCaffeineIntakeMg INTEGER NOT NULL,
+                        healthSchoolStress INTEGER NOT NULL,
+                        healthWorkStress INTEGER NOT NULL,
+                        healthSensoryOverload INTEGER NOT NULL,
+                        healthEnergyLevel INTEGER NOT NULL,
+                        healthBodyDiscomfort INTEGER NOT NULL,
+                        healthExecutiveFunction INTEGER NOT NULL,
+                        healthSocialBattery INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO daily_entries_new
+                    SELECT
+                        id, entryDate, createdAt, lastEditedAt, freeformNotes, tags,
+                        contextEntryType, contextSchoolDay, contextWorkDay, contextWeekend,
+                        contextHoliday, contextVacation,
+                        COALESCE(emotionHappy, 5),
+                        5,
+                        MAX(0, MIN(10, 10 - COALESCE(emotionAnxious, 5))),
+                        COALESCE(emotionConnected, 5),
+                        MAX(0, MIN(10, 10 - COALESCE(emotionConfused, 5))),
+                        MAX(0, MIN(10, 10 - COALESCE(emotionOverwhelmed, 5))),
+                        COALESCE(emotionHopeful, 5),
+                        5,
+                        5,
+                        5,
+                        5,
+                        5,
+                        thoughtRuminationLevel, thoughtCheckedPhone, thoughtRereadMessages,
+                        thoughtImaginedNegative, thoughtImaginedPositive, thoughtNeedReassurance,
+                        thoughtClarityLevel, thoughtUncertaintyLevel, thoughtWantedToPullAway,
+                        thoughtWantedToReachOut,
+                        healthHoursSlept, healthAteEnough, healthCaffeineIntakeMg,
+                        healthSchoolStress, healthWorkStress, healthSensoryOverload,
+                        healthEnergyLevel, healthBodyDiscomfort, healthExecutiveFunction,
+                        healthSocialBattery
+                    FROM daily_entries
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE daily_entries")
+                db.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
             }
         }
     }

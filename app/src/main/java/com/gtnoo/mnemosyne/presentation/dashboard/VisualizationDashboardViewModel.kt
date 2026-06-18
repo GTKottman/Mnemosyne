@@ -19,8 +19,8 @@ class VisualizationDashboardViewModel @Inject constructor(
     private val vizService: VisualizationService
 ) : ViewModel() {
 
-    private val _anxietyTrend = MutableStateFlow<List<ChartPoint>>(emptyList())
-    val anxietyTrend: StateFlow<List<ChartPoint>> = _anxietyTrend.asStateFlow()
+    private val _calmTrend = MutableStateFlow<List<ChartPoint>>(emptyList())
+    val calmTrend: StateFlow<List<ChartPoint>> = _calmTrend.asStateFlow()
 
     private val _happinessTrend = MutableStateFlow<List<ChartPoint>>(emptyList())
     val happinessTrend: StateFlow<List<ChartPoint>> = _happinessTrend.asStateFlow()
@@ -28,8 +28,8 @@ class VisualizationDashboardViewModel @Inject constructor(
     private val _energyTrend = MutableStateFlow<List<ChartPoint>>(emptyList())
     val energyTrend: StateFlow<List<ChartPoint>> = _energyTrend.asStateFlow()
 
-    private val _sleepVsAnxiety = MutableStateFlow<List<ScatterPoint>>(emptyList())
-    val sleepVsAnxiety: StateFlow<List<ScatterPoint>> = _sleepVsAnxiety.asStateFlow()
+    private val _sleepVsCalm = MutableStateFlow<List<ScatterPoint>>(emptyList())
+    val sleepVsCalm: StateFlow<List<ScatterPoint>> = _sleepVsCalm.asStateFlow()
 
     private val _weatherVsMood = MutableStateFlow<List<ScatterPoint>>(emptyList())
     val weatherVsMood: StateFlow<List<ScatterPoint>> = _weatherVsMood.asStateFlow()
@@ -53,10 +53,10 @@ class VisualizationDashboardViewModel @Inject constructor(
     private fun loadAll() {
         val range = _selectedRange.value
         viewModelScope.launch {
-            _anxietyTrend.value = vizService.buildEmotionTrend("anxious", range)
-            _happinessTrend.value = vizService.buildEmotionTrend("happy", range)
-            _energyTrend.value = vizService.buildEmotionTrend("calm", range)
-            _sleepVsAnxiety.value = vizService.buildSleepVsAnxiety(range)
+            _calmTrend.value = vizService.buildEmotionTrend("calm", range)
+            _happinessTrend.value = vizService.buildEmotionTrend("happiness", range)
+            _energyTrend.value = vizService.buildEmotionTrend("energy", range)
+            _sleepVsCalm.value = vizService.buildSleepVsCalm(range)
             _weatherVsMood.value = vizService.buildWeatherVsMood(range)
             _outcomeSummary.value = vizService.buildOutcomeSummary(range)
             _moodByPlace.value = vizService.buildMoodByPlaceBreakdown(range)

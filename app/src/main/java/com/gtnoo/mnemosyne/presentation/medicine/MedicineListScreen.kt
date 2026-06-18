@@ -98,7 +98,8 @@ fun MedicineListScreen(
                         onClick = { onMedicineClick(mwb.medicine.id) },
                         onEdit = { onEditMedicine(mwb.medicine.id) },
                         onToggleActive = { viewModel.toggleActive(mwb.medicine) },
-                        onDelete = { showDeleteDialog = mwb.medicine }
+                        onDelete = { showDeleteDialog = mwb.medicine },
+                        onTakePill = { viewModel.takePill(mwb.medicine.id) }
                     )
                 }
             }
@@ -118,7 +119,8 @@ fun MedicineListScreen(
                         onClick = { onMedicineClick(mwb.medicine.id) },
                         onEdit = { onEditMedicine(mwb.medicine.id) },
                         onToggleActive = { viewModel.toggleActive(mwb.medicine) },
-                        onDelete = { showDeleteDialog = mwb.medicine }
+                        onDelete = { showDeleteDialog = mwb.medicine },
+                        onTakePill = { viewModel.takePill(mwb.medicine.id) }
                     )
                 }
             }
@@ -149,7 +151,8 @@ private fun MedicineCard(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onToggleActive: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onTakePill: () -> Unit
 ) {
     val bottle = item.currentBottle
     val lowStock = bottle != null && bottle.pillsRemaining <= 7
@@ -236,6 +239,17 @@ private fun MedicineCard(
                         onClick = {},
                         label = { Text("${bottle.mgPerPill}mg each") }
                     )
+                    if (bottle.pillsRemaining > 0) {
+                        FilledTonalButton(
+                            onClick = onTakePill,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Medication, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Take pill", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     if (lowStock) {
                         AssistChip(
                             onClick = {},

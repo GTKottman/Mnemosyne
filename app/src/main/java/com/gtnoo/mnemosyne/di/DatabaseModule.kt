@@ -23,7 +23,9 @@ object DatabaseModule {
                 MnemosyneDatabase.MIGRATION_1_2,
                 MnemosyneDatabase.MIGRATION_2_3,
                 MnemosyneDatabase.MIGRATION_3_4,
-                MnemosyneDatabase.MIGRATION_4_5
+                MnemosyneDatabase.MIGRATION_4_5,
+                MnemosyneDatabase.MIGRATION_5_6,
+                MnemosyneDatabase.MIGRATION_6_7
             )
             .fallbackToDestructiveMigration()
             .build()

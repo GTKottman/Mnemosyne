@@ -23,11 +23,10 @@ class DailyEntryVectorizer @Inject constructor() {
     }
 
     private fun encodeEmotionData(e: EmotionData) = doubleArrayOf(
-        encodeScale(e.hopeful), encodeScale(e.anxious), encodeScale(e.sad),
-        encodeScale(e.happy), encodeScale(e.calm), encodeScale(e.lonely),
-        encodeScale(e.excited), encodeScale(e.confused), encodeScale(e.secure),
-        encodeScale(e.jealous), encodeScale(e.rejected), encodeScale(e.connected),
-        encodeScale(e.overwhelmed), encodeScale(e.regulated)
+        encodeScale(e.happiness), encodeScale(e.safety), encodeScale(e.calm),
+        encodeScale(e.connection), encodeScale(e.clarity), encodeScale(e.capacity),
+        encodeScale(e.hope), encodeScale(e.worthiness), encodeScale(e.peace),
+        encodeScale(e.energy), encodeScale(e.agency), encodeScale(e.presence)
     )
 
     private fun encodeThoughtData(t: ThoughtPatternData) = doubleArrayOf(

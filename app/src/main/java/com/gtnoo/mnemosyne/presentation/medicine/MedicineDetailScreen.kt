@@ -32,6 +32,7 @@ fun MedicineDetailScreen(
     val medicine by viewModel.medicine.collectAsStateWithLifecycle()
     val currentBottle by viewModel.currentBottle.collectAsStateWithLifecycle()
     val doseHistory by viewModel.doseHistory.collectAsStateWithLifecycle()
+    val todaysDoses by viewModel.todaysDoses.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -47,6 +48,7 @@ fun MedicineDetailScreen(
     }
 
     val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    val dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -109,9 +111,11 @@ fun MedicineDetailScreen(
                 if (currentBottle != null) {
                     CurrentBottleCard(
                         bottle = currentBottle!!,
+                        todaysDoseCount = todaysDoses.sumOf { it.pillsTaken },
                         dateFormatter = dateFormatter,
                         onRefill = { showRefillSheet = true },
-                        onChangeDosage = { showChangeDosageSheet = true }
+                        onChangeDosage = { showChangeDosageSheet = true },
+                        onTakePill = { viewModel.takePill() }
                     )
                 } else {
                     Card(
@@ -152,7 +156,7 @@ fun MedicineDetailScreen(
                     )
                 }
                 items(doseHistory) { dose ->
-                    DoseHistoryRow(dose = dose, dateFormatter = dateFormatter)
+                    DoseHistoryRow(dose = dose, dateFormatter = dateFormatter, dateTimeFormatter = dateTimeFormatter)
                 }
             }
         }
@@ -183,11 +187,14 @@ fun MedicineDetailScreen(
 @Composable
 private fun CurrentBottleCard(
     bottle: MedicineBottle,
+    todaysDoseCount: Int,
     dateFormatter: DateTimeFormatter,
     onRefill: () -> Unit,
-    onChangeDosage: () -> Unit
+    onChangeDosage: () -> Unit,
+    onTakePill: () -> Unit
 ) {
     val lowStock = bottle.pillsRemaining <= 7
+    val outOfStock = bottle.pillsRemaining <= 0
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -236,6 +243,29 @@ private fun CurrentBottleCard(
                 modifier = Modifier.fillMaxWidth(),
                 color = if (lowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
+
+            Button(
+                onClick = onTakePill,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !outOfStock,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(Icons.Default.Medication, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Take Pill", style = MaterialTheme.typography.titleSmall)
+            }
+
+            if (todaysDoseCount > 0) {
+                Text(
+                    "Taken today: $todaysDoseCount pill${if (todaysDoseCount != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onRefill, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -253,7 +283,11 @@ private fun CurrentBottleCard(
 }
 
 @Composable
-private fun DoseHistoryRow(dose: MedicineDose, dateFormatter: DateTimeFormatter) {
+private fun DoseHistoryRow(
+    dose: MedicineDose,
+    dateFormatter: DateTimeFormatter,
+    dateTimeFormatter: DateTimeFormatter
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -266,7 +300,14 @@ private fun DoseHistoryRow(dose: MedicineDose, dateFormatter: DateTimeFormatter)
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text(dose.date.format(dateFormatter), style = MaterialTheme.typography.bodyMedium)
+            Column {
+                val label = if (dose.takenAt != null) {
+                    dose.takenAt.format(dateTimeFormatter)
+                } else {
+                    dose.date.format(dateFormatter)
+                }
+                Text(label, style = MaterialTheme.typography.bodyMedium)
+            }
         }
         Text(
             "${dose.pillsTaken} pill${if (dose.pillsTaken > 1) "s" else ""}",

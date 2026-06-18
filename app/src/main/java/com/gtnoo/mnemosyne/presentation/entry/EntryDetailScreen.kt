@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.service.EntryService
+import com.gtnoo.mnemosyne.presentation.settings.SettingsViewModel
 import com.gtnoo.mnemosyne.ui.components.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -40,9 +41,11 @@ fun EntryDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onSimilarity: (String) -> Unit,
-    viewModel: EntryDetailViewModel = hiltViewModel()
+    viewModel: EntryDetailViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val entry by viewModel.entry.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
 
     LaunchedEffect(entryId) { viewModel.loadEntry(entryId) }
 
@@ -109,7 +112,7 @@ fun EntryDetailScreen(
                 }
                 if (e.weatherSnapshots.isNotEmpty()) {
                     item { SectionLabel("Weather") }
-                    items(e.weatherSnapshots) { WeatherCard(it) }
+                    items(e.weatherSnapshots) { WeatherCard(it, useFahrenheit = settings.useFahrenheit) }
                 }
                 item { SectionLabel("Health Context") }
                 item { HealthSummaryCard(e.healthContextData) }
@@ -131,10 +134,10 @@ fun EntryDetailScreen(
 @Composable
 private fun EmotionGrid(emotion: EmotionData) {
     val items = listOf(
-        "Hopeful" to emotion.hopeful, "Anxious" to emotion.anxious, "Sad" to emotion.sad,
-        "Happy" to emotion.happy, "Calm" to emotion.calm, "Lonely" to emotion.lonely,
-        "Excited" to emotion.excited, "Confused" to emotion.confused, "Secure" to emotion.secure,
-        "Connected" to emotion.connected, "Overwhelmed" to emotion.overwhelmed, "Regulated" to emotion.regulated
+        "Mood" to emotion.happiness, "Safety" to emotion.safety, "Calm" to emotion.calm,
+        "Connection" to emotion.connection, "Clarity" to emotion.clarity, "Capacity" to emotion.capacity,
+        "Hope" to emotion.hope, "Worthiness" to emotion.worthiness, "Peace" to emotion.peace,
+        "Energy" to emotion.energy, "Agency" to emotion.agency, "Presence" to emotion.presence
     )
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

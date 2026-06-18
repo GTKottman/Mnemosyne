@@ -41,10 +41,10 @@ class PlaceService @Inject constructor(
         val entries = entryRepository.getByPlaceId(place.id).filter {
             !it.entryDate.isBefore(range.start) && !it.entryDate.isAfter(range.end)
         }
-        val moodScores = entries.map { it.emotionData.happy.toDouble() }
+        val moodScores = entries.map { it.emotionData.happiness.toDouble() }
         val energyScores = entries.map { it.healthContextData.energyLevel.toDouble() }
         val lastDate = entries.maxByOrNull { it.entryDate }?.entryDate
-        val trend = entries.sortedBy { it.entryDate }.map { it.entryDate to it.emotionData.happy.toDouble() }
+        val trend = entries.sortedBy { it.entryDate }.map { it.entryDate to it.emotionData.happiness.toDouble() }
         return PlaceSummary(
             place = place,
             totalVisits = entries.size,

@@ -65,11 +65,11 @@ class EntryService @Inject constructor(
         if (criteria.tags.isNotEmpty()) {
             entries = entries.filter { entry -> criteria.tags.any { it in entry.tags } }
         }
-        criteria.minAnxiety?.let { min ->
-            entries = entries.filter { it.emotionData.anxious >= min }
+        criteria.maxHappiness?.let { max ->
+            entries = entries.filter { it.emotionData.happiness <= max }
         }
         criteria.minConnection?.let { min ->
-            entries = entries.filter { it.emotionData.connected >= min }
+            entries = entries.filter { it.emotionData.connection >= min }
         }
         if (criteria.onlyDaysWithInteractions) {
             entries = entries.filter { it.interactions.isNotEmpty() }

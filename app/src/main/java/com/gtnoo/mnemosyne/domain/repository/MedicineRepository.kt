@@ -16,12 +16,14 @@ interface MedicineRepository {
     suspend fun delete(id: String)
 
     fun observeBottlesForMedicine(medicineId: String): Flow<List<MedicineBottle>>
+    fun observeCurrentBottles(): Flow<List<MedicineBottle>>
     suspend fun getCurrentBottle(medicineId: String): MedicineBottle?
     suspend fun saveBottle(bottle: MedicineBottle)
     suspend fun updateBottle(bottle: MedicineBottle)
     suspend fun retireCurrentBottle(medicineId: String)
 
     fun observeDosesForDate(date: LocalDate): Flow<List<MedicineDose>>
+    fun observeDosesForMedicineOnDate(medicineId: String, date: LocalDate): Flow<List<MedicineDose>>
     suspend fun getDosesForDate(date: LocalDate): List<MedicineDose>
     suspend fun getDoseForMedicineOnDate(medicineId: String, date: LocalDate): MedicineDose?
     suspend fun getAllDosesForMedicine(medicineId: String): List<MedicineDose>

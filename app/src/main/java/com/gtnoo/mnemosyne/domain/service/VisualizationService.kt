@@ -15,20 +15,18 @@ class VisualizationService @Inject constructor(
         val entries = entryRepository.getBetweenDates(range.start, range.end)
         return entries.sortedBy { it.entryDate }.map { entry ->
             val value = when (emotionName.lowercase()) {
-                "hopeful" -> entry.emotionData.hopeful
-                "anxious" -> entry.emotionData.anxious
-                "sad" -> entry.emotionData.sad
-                "happy" -> entry.emotionData.happy
+                "happiness", "mood" -> entry.emotionData.happiness
+                "safety" -> entry.emotionData.safety
                 "calm" -> entry.emotionData.calm
-                "lonely" -> entry.emotionData.lonely
-                "excited" -> entry.emotionData.excited
-                "confused" -> entry.emotionData.confused
-                "secure" -> entry.emotionData.secure
-                "jealous" -> entry.emotionData.jealous
-                "rejected" -> entry.emotionData.rejected
-                "connected" -> entry.emotionData.connected
-                "overwhelmed" -> entry.emotionData.overwhelmed
-                "regulated" -> entry.emotionData.regulated
+                "connection" -> entry.emotionData.connection
+                "clarity" -> entry.emotionData.clarity
+                "capacity" -> entry.emotionData.capacity
+                "hope" -> entry.emotionData.hope
+                "worthiness" -> entry.emotionData.worthiness
+                "peace" -> entry.emotionData.peace
+                "energy" -> entry.emotionData.energy
+                "agency" -> entry.emotionData.agency
+                "presence" -> entry.emotionData.presence
                 else -> 0
             }
             ChartPoint(entry.entryDate, value.toDouble())
@@ -47,12 +45,12 @@ class VisualizationService @Inject constructor(
         }
     }
 
-    suspend fun buildSleepVsAnxiety(range: DateRange): List<ScatterPoint> {
+    suspend fun buildSleepVsCalm(range: DateRange): List<ScatterPoint> {
         val entries = entryRepository.getBetweenDates(range.start, range.end)
         return entries.map { entry ->
             ScatterPoint(
                 x = entry.healthContextData.hoursSlept,
-                y = entry.emotionData.anxious.toDouble(),
+                y = entry.emotionData.calm.toDouble(),
                 label = entry.entryDate.toString()
             )
         }
@@ -64,7 +62,7 @@ class VisualizationService @Inject constructor(
             val temp = entry.weatherSnapshots.firstOrNull()?.temperatureAverage ?: return@mapNotNull null
             ScatterPoint(
                 x = temp,
-                y = entry.emotionData.happy.toDouble(),
+                y = entry.emotionData.happiness.toDouble(),
                 label = entry.entryDate.toString()
             )
         }
@@ -84,7 +82,7 @@ class VisualizationService @Inject constructor(
     suspend fun buildMoodByPlaceBreakdown(range: DateRange): List<Pair<String, Double>> {
         val entries = entryRepository.getBetweenDates(range.start, range.end)
         return entries
-            .flatMap { entry -> entry.placesVisited.map { it.label to entry.emotionData.happy.toDouble() } }
+            .flatMap { entry -> entry.placesVisited.map { it.label to entry.emotionData.happiness.toDouble() } }
             .groupBy { it.first }
             .map { (label, pairs) -> label to pairs.map { it.second }.average() }
             .sortedByDescending { it.second }

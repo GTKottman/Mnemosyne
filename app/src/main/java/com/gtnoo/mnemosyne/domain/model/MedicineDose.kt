@@ -1,6 +1,7 @@
 package com.gtnoo.mnemosyne.domain.model
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 data class MedicineDose(
@@ -8,5 +9,6 @@ data class MedicineDose(
     val medicineId: String,
     val bottleId: String,
     val date: LocalDate = LocalDate.now(),
-    val pillsTaken: Int = 1
+    val pillsTaken: Int = 1,
+    val takenAt: LocalDateTime? = null
 )

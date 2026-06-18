@@ -23,10 +23,10 @@ import com.gtnoo.mnemosyne.ui.components.SectionLabel
 fun VisualizationDashboardScreen(
     viewModel: VisualizationDashboardViewModel = hiltViewModel()
 ) {
-    val anxietyTrend by viewModel.anxietyTrend.collectAsStateWithLifecycle()
+    val calmTrend by viewModel.calmTrend.collectAsStateWithLifecycle()
     val happinessTrend by viewModel.happinessTrend.collectAsStateWithLifecycle()
     val energyTrend by viewModel.energyTrend.collectAsStateWithLifecycle()
-    val sleepVsAnxiety by viewModel.sleepVsAnxiety.collectAsStateWithLifecycle()
+    val sleepVsCalm by viewModel.sleepVsCalm.collectAsStateWithLifecycle()
     val outcomeSummary by viewModel.outcomeSummary.collectAsStateWithLifecycle()
     val moodByPlace by viewModel.moodByPlace.collectAsStateWithLifecycle()
     val selectedRange by viewModel.selectedRange.collectAsStateWithLifecycle()
@@ -65,10 +65,10 @@ fun VisualizationDashboardScreen(
                 }
             }
 
-            item { SectionLabel("Anxiety Over Time") }
+            item { SectionLabel("Calm Over Time") }
             item {
-                BarChart(data = anxietyTrend.map { it.date to it.value },
-                    yLabel = "Anxiety (0-10)", color = MaterialTheme.colorScheme.error)
+                BarChart(data = calmTrend.map { it.date to it.value },
+                    yLabel = "Calm (0-10)", color = MaterialTheme.colorScheme.primary)
             }
 
             item { SectionLabel("Happiness Over Time") }
@@ -77,14 +77,14 @@ fun VisualizationDashboardScreen(
                     yLabel = "Happiness (0-10)", color = MaterialTheme.colorScheme.secondary)
             }
 
-            item { SectionLabel("Calm Over Time") }
+            item { SectionLabel("Energy Over Time") }
             item {
                 BarChart(data = energyTrend.map { it.date to it.value },
-                    yLabel = "Calm (0-10)", color = MaterialTheme.colorScheme.primary)
+                    yLabel = "Energy (0-10)", color = MaterialTheme.colorScheme.tertiary)
             }
 
-            item { SectionLabel("Sleep vs. Anxiety") }
-            item { ScatterChart(data = sleepVsAnxiety, xLabel = "Hours Slept", yLabel = "Anxiety") }
+            item { SectionLabel("Sleep vs. Calm") }
+            item { ScatterChart(data = sleepVsCalm, xLabel = "Hours Slept", yLabel = "Calm") }
 
             if (outcomeSummary.isNotEmpty()) {
                 item { SectionLabel("Outcome Summary") }

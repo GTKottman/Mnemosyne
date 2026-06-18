@@ -31,8 +31,8 @@ class EntryHistoryViewModel @Inject constructor(
             (criteria.personId == null || entry.interactions.any { it.person.id == criteria.personId }) &&
             (criteria.placeId == null || entry.placesVisited.any { it.id == criteria.placeId }) &&
             (criteria.tags.isEmpty() || criteria.tags.any { it in entry.tags }) &&
-            (criteria.minAnxiety == null || entry.emotionData.anxious >= criteria.minAnxiety) &&
-            (criteria.minConnection == null || entry.emotionData.connected >= criteria.minConnection) &&
+            (criteria.maxHappiness == null || entry.emotionData.happiness <= criteria.maxHappiness) &&
+            (criteria.minConnection == null || entry.emotionData.connection >= criteria.minConnection) &&
             (!criteria.onlyDaysWithInteractions || entry.interactions.isNotEmpty()) &&
             (!criteria.onlyHighRuminationDays || entry.thoughtPatternData.ruminationLevel >= 7) &&
             (!criteria.onlyWeatherAffectedDays || entry.weatherSnapshots.isNotEmpty())

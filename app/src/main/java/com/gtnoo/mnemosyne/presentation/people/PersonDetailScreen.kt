@@ -9,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gtnoo.mnemosyne.data.remote.weather.WeatherApiClient
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
 import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
@@ -23,11 +25,20 @@ import com.gtnoo.mnemosyne.notification.ImportantDateScheduler
 import com.gtnoo.mnemosyne.ui.components.SectionLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import javax.inject.Inject
+
+sealed interface CurrentWeatherUiState {
+    data object Loading : CurrentWeatherUiState
+    data class Success(val temperatureCelsius: Double, val condition: WeatherCondition) : CurrentWeatherUiState
+    data object Unavailable : CurrentWeatherUiState
+}
 
 @HiltViewModel
 class PersonDetailViewModel @Inject constructor(
@@ -35,6 +46,7 @@ class PersonDetailViewModel @Inject constructor(
     private val personService: PersonService,
     private val placeRepository: PlaceRepository,
     private val importantDateService: ImportantDateService,
+    private val weatherApiClient: WeatherApiClient,
     @ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
     private val _person = MutableStateFlow<Person?>(null)
@@ -49,15 +61,31 @@ class PersonDetailViewModel @Inject constructor(
     private val _importantDates = MutableStateFlow<List<ImportantDate>>(emptyList())
     val importantDates: StateFlow<List<ImportantDate>> = _importantDates.asStateFlow()
 
+    private val _currentWeather = MutableStateFlow<CurrentWeatherUiState>(CurrentWeatherUiState.Loading)
+    val currentWeather: StateFlow<CurrentWeatherUiState> = _currentWeather.asStateFlow()
+
     private var observeJob: kotlinx.coroutines.Job? = null
 
     fun load(personId: String) {
         viewModelScope.launch {
             val p = personRepository.getById(personId) ?: return@launch
             _person.value = p
-            _linkedPlace.value = p.usualPlaceId?.let { placeRepository.getById(it) }
+            val place = p.usualPlaceId?.let { placeRepository.getById(it) }
+            _linkedPlace.value = place
             val range = DateRange.lastThreeMonths()
             _summary.value = personService.getSummaryForPerson(p, range)
+
+            if (place?.latitude != null && place.longitude != null) {
+                _currentWeather.value = CurrentWeatherUiState.Loading
+                val result = weatherApiClient.fetchCurrentWeather(place)
+                _currentWeather.value = if (result != null) {
+                    CurrentWeatherUiState.Success(result.first, result.second)
+                } else {
+                    CurrentWeatherUiState.Unavailable
+                }
+            } else {
+                _currentWeather.value = CurrentWeatherUiState.Unavailable
+            }
         }
         observeJob?.cancel()
         observeJob = viewModelScope.launch {
@@ -105,6 +133,7 @@ fun PersonDetailScreen(
     val linkedPlace by viewModel.linkedPlace.collectAsStateWithLifecycle()
     val summary by viewModel.summary.collectAsStateWithLifecycle()
     val importantDates by viewModel.importantDates.collectAsStateWithLifecycle()
+    val currentWeather by viewModel.currentWeather.collectAsStateWithLifecycle()
 
     var editingDate by remember { mutableStateOf<ImportantDate?>(null) }
     var showAddDate by remember { mutableStateOf(false) }
@@ -153,49 +182,66 @@ fun PersonDetailScreen(
             ) {
                 item { Spacer(Modifier.height(8.dp)) }
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Person, contentDescription = null,
-                                    modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                                Column {
-                                    Text(p.displayName, style = MaterialTheme.typography.headlineSmall)
-                                    Text(p.relationshipType.label, style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                }
-                            }
-                            if (p.notes.isNotBlank()) {
-                                Text(p.notes, style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                            linkedPlace?.let { place ->
-                                if (place.latitude != null && place.longitude != null) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.PinDrop,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = when {
-                                                place.city.isNotBlank() && place.state.isNotBlank() ->
-                                                    "${place.city}, ${place.state}"
-                                                place.city.isNotBlank() -> place.city
-                                                else -> "Location pinned"
-                                            },
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Default.Person, contentDescription = null,
+                                        modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Column {
+                                        Text(p.displayName, style = MaterialTheme.typography.headlineSmall)
+                                        Text(p.relationshipType.label, style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
                                 }
+                                if (p.notes.isNotBlank()) {
+                                    Text(p.notes, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                }
+                                linkedPlace?.let { place ->
+                                    if (place.latitude != null && place.longitude != null) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.PinDrop,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                            Text(
+                                                text = when {
+                                                    place.city.isNotBlank() && place.state.isNotBlank() ->
+                                                        "${place.city}, ${place.state}"
+                                                    place.city.isNotBlank() -> place.city
+                                                    else -> "Location pinned"
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                }
+                                Text("Added ${p.addedOn.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
-                            Text("Added ${p.addedOn.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        linkedPlace?.let { place ->
+                            if (place.latitude != null && place.longitude != null) {
+                                WeatherTimeCard(
+                                    modifier = Modifier.weight(1f),
+                                    place = place,
+                                    weatherState = currentWeather
+                                )
+                            }
                         }
                     }
                 }
@@ -276,6 +322,106 @@ fun PersonDetailScreen(
                 showAddDate = false
             }
         )
+    }
+}
+
+@Composable
+private fun WeatherTimeCard(
+    modifier: Modifier = Modifier,
+    place: SavedPlace,
+    weatherState: CurrentWeatherUiState
+) {
+    var currentTime by remember { mutableStateOf("") }
+
+    LaunchedEffect(place.timezone) {
+        while (true) {
+            currentTime = try {
+                val zone = ZoneId.of(place.timezone.ifBlank { "UTC" })
+                ZonedDateTime.now(zone).format(DateTimeFormatter.ofPattern("h:mm a"))
+            } catch (_: Exception) {
+                ZonedDateTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
+            }
+            delay(60_000L)
+        }
+    }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 120.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (currentTime.isNotEmpty()) {
+                Text(
+                    text = currentTime,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            when (weatherState) {
+                is CurrentWeatherUiState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+                is CurrentWeatherUiState.Success -> {
+                    val conditionIcon = when (weatherState.condition) {
+                        WeatherCondition.SUNNY -> Icons.Default.WbSunny
+                        WeatherCondition.CLOUDY -> Icons.Default.Cloud
+                        WeatherCondition.RAINY -> Icons.Default.Umbrella
+                        WeatherCondition.STORMY -> Icons.Default.Thunderstorm
+                        WeatherCondition.FOGGY -> Icons.Default.CloudQueue
+                        WeatherCondition.SNOWY -> Icons.Default.AcUnit
+                        WeatherCondition.WINDY -> Icons.Default.Air
+                        WeatherCondition.UNKNOWN -> Icons.Default.DeviceUnknown
+                    }
+                    Icon(
+                        imageVector = conditionIcon,
+                        contentDescription = weatherState.condition.label,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "${weatherState.temperatureCelsius.toInt()}°C",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = weatherState.condition.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                is CurrentWeatherUiState.Unavailable -> {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = "Weather unavailable",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "No weather",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
     }
 }
 
