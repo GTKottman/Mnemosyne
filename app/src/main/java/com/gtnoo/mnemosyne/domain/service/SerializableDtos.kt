@@ -10,6 +10,10 @@ data class SerializableBackup(
     val entries: List<SerializableEntry>,
     val people: List<SerializablePerson>,
     val places: List<SerializablePlace>,
+    val importantDates: List<SerializableImportantDate> = emptyList(),
+    val medicines: List<SerializableMedicine> = emptyList(),
+    val medicineBottles: List<SerializableMedicineBottle> = emptyList(),
+    val medicineDoses: List<SerializableMedicineDose> = emptyList(),
     val exportedAt: String,
     val appVersion: String
 )
@@ -74,12 +78,85 @@ data class SerializableEntry(
 }
 
 @Serializable
+data class SerializableImportantDate(
+    val id: String,
+    val personId: String,
+    val label: String,
+    val date: String?,
+    val kind: String,
+    val isRecurring: Boolean,
+    val notifyEnabled: Boolean,
+    val notifyDaysBefore: Int,
+    val remindToLogInteraction: Boolean
+) {
+    fun toDomain() = ImportantDate(
+        id = id,
+        personId = personId,
+        label = label,
+        date = date?.let { LocalDate.parse(it) },
+        kind = ImportantDateKind.valueOf(kind),
+        isRecurring = isRecurring,
+        notifyEnabled = notifyEnabled,
+        notifyDaysBefore = notifyDaysBefore,
+        remindToLogInteraction = remindToLogInteraction
+    )
+}
+
+@Serializable
 data class SerializableInteraction(
     val id: String, val personId: String, val mode: String, val notes: String
 ) {
     fun toDomain(person: Person, date: LocalDate) = PersonInteraction(
         id = id, date = date, person = person,
         mode = InteractionMode.valueOf(mode), notes = notes
+    )
+}
+
+@Serializable
+data class SerializableMedicine(
+    val id: String,
+    val name: String,
+    val notes: String,
+    val isActive: Boolean
+) {
+    fun toDomain() = Medicine(id = id, name = name, notes = notes, isActive = isActive)
+}
+
+@Serializable
+data class SerializableMedicineBottle(
+    val id: String,
+    val medicineId: String,
+    val mgPerPill: Int,
+    val pillsTotal: Int,
+    val pillsRemaining: Int,
+    val openedDate: String,
+    val isCurrentBottle: Boolean
+) {
+    fun toDomain() = MedicineBottle(
+        id = id,
+        medicineId = medicineId,
+        mgPerPill = mgPerPill,
+        pillsTotal = pillsTotal,
+        pillsRemaining = pillsRemaining,
+        openedDate = LocalDate.parse(openedDate),
+        isCurrentBottle = isCurrentBottle
+    )
+}
+
+@Serializable
+data class SerializableMedicineDose(
+    val id: String,
+    val medicineId: String,
+    val bottleId: String,
+    val date: String,
+    val pillsTaken: Int
+) {
+    fun toDomain() = MedicineDose(
+        id = id,
+        medicineId = medicineId,
+        bottleId = bottleId,
+        date = LocalDate.parse(date),
+        pillsTaken = pillsTaken
     )
 }
 
@@ -110,6 +187,28 @@ fun AppBackup.toSerializable() = SerializableBackup(
     places = places.map { pl ->
         SerializablePlace(pl.id, pl.label, pl.placeType.name, pl.city, pl.state,
             pl.country, pl.latitude, pl.longitude, pl.timezone, pl.notes)
+    },
+    importantDates = importantDates.map { d ->
+        SerializableImportantDate(
+            id = d.id,
+            personId = d.personId,
+            label = d.label,
+            date = d.date?.toString(),
+            kind = d.kind.name,
+            isRecurring = d.isRecurring,
+            notifyEnabled = d.notifyEnabled,
+            notifyDaysBefore = d.notifyDaysBefore,
+            remindToLogInteraction = d.remindToLogInteraction
+        )
+    },
+    medicines = medicines.map { m ->
+        SerializableMedicine(m.id, m.name, m.notes, m.isActive)
+    },
+    medicineBottles = medicineBottles.map { b ->
+        SerializableMedicineBottle(b.id, b.medicineId, b.mgPerPill, b.pillsTotal, b.pillsRemaining, b.openedDate.toString(), b.isCurrentBottle)
+    },
+    medicineDoses = medicineDoses.map { d ->
+        SerializableMedicineDose(d.id, d.medicineId, d.bottleId, d.date.toString(), d.pillsTaken)
     },
     exportedAt = exportedAt.toString(),
     appVersion = appVersion

@@ -52,4 +52,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindImportantDateRepository(impl: ImportantDateRepositoryImpl): ImportantDateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMedicineRepository(impl: MedicineRepositoryImpl): MedicineRepository
 }

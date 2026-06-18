@@ -23,6 +23,7 @@ import java.time.LocalDate
 fun InteractionFormScreen(
     interactionId: String?,
     initialDate: String?,
+    initialPersonId: String? = null,
     onBack: () -> Unit,
     viewModel: InteractionFormViewModel = hiltViewModel()
 ) {
@@ -46,9 +47,13 @@ fun InteractionFormScreen(
         initialSelectedDateMillis = currentDate.toEpochDay() * 86_400_000L
     )
 
-    LaunchedEffect(interactionId, initialDate) {
+    LaunchedEffect(interactionId, initialDate, initialPersonId) {
         when {
             !interactionId.isNullOrBlank() -> viewModel.loadInteraction(interactionId)
+            !initialPersonId.isNullOrBlank() -> {
+                val date = initialDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
+                viewModel.initForPersonAndDate(initialPersonId, date)
+            }
             !initialDate.isNullOrBlank() -> viewModel.initForDate(LocalDate.parse(initialDate))
             else -> viewModel.initEmpty()
         }

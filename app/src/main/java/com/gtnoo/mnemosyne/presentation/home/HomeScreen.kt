@@ -26,6 +26,7 @@ fun HomeScreen(
     onNewInteraction: () -> Unit,
     onEntryClick: (String) -> Unit,
     onPersonClick: (String) -> Unit,
+    onLogInteractionForPerson: (String) -> Unit,
     onHistory: () -> Unit,
     onSettings: () -> Unit,
     onImportExport: () -> Unit,
@@ -34,6 +35,7 @@ fun HomeScreen(
     val todayEntries by viewModel.todayEntries.collectAsStateWithLifecycle()
     val recentEntries by viewModel.recentEntries.collectAsStateWithLifecycle()
     val favoriteSummaries by viewModel.favoriteSummaries.collectAsStateWithLifecycle()
+    val upcomingDates by viewModel.upcomingDates.collectAsStateWithLifecycle()
 
     var showOverflowMenu by remember { mutableStateOf(false) }
 
@@ -137,6 +139,19 @@ fun HomeScreen(
                 }
             }
 
+            if (upcomingDates.isNotEmpty()) {
+                item { SectionLabel("Coming Up") }
+                items(upcomingDates, key = { "${it.importantDate.id}-${it.nextOccurrence}" }) { upcoming ->
+                    UpcomingDateCard(
+                        upcoming = upcoming,
+                        onClick = { onPersonClick(upcoming.person.id) },
+                        onLogInteraction = if (upcoming.importantDate.remindToLogInteraction) {
+                            { onLogInteractionForPerson(upcoming.person.id) }
+                        } else null
+                    )
+                }
+            }
+
             // Favorite people
             if (favoriteSummaries.isNotEmpty()) {
                 item { SectionLabel("People") }
@@ -163,6 +178,55 @@ fun HomeScreen(
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingDateCard(
+    upcoming: com.gtnoo.mnemosyne.domain.model.UpcomingImportantDate,
+    onClick: () -> Unit,
+    onLogInteraction: (() -> Unit)?
+) {
+    val relativeText = when (upcoming.daysUntil) {
+        0 -> "Today"
+        1 -> "Tomorrow"
+        else -> "In ${upcoming.daysUntil} days"
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "${upcoming.importantDate.label}: ${upcoming.person.displayName}",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    upcoming.nextOccurrence.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    relativeText,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (onLogInteraction != null) {
+                    TextButton(onClick = onLogInteraction) {
+                        Text("Log interaction")
+                    }
+                }
+            }
         }
     }
 }

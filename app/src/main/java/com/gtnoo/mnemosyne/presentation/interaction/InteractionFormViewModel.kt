@@ -51,6 +51,15 @@ class InteractionFormViewModel @Inject constructor(
         initialized = true
     }
 
+    fun initForPersonAndDate(personId: String, date: LocalDate) {
+        if (initialized) return
+        initialized = true
+        viewModelScope.launch {
+            val person = personRepository.getById(personId) ?: return@launch
+            _interaction.value = PersonInteraction(date = date, person = person)
+        }
+    }
+
     fun initEmpty() {
         if (initialized) return
         initialized = true

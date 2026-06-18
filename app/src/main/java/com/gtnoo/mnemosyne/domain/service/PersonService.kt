@@ -9,16 +9,23 @@ import javax.inject.Inject
 
 class PersonService @Inject constructor(
     private val personRepository: PersonRepository,
-    private val interactionRepository: InteractionRepository
+    private val interactionRepository: InteractionRepository,
+    private val importantDateService: ImportantDateService
 ) {
     suspend fun addPerson(
         name: String,
         type: RelationshipType,
         usualPlaceId: String? = null,
-        notes: String = ""
+        notes: String = "",
+        birthday: java.time.LocalDate? = null
     ): Person {
         val person = Person(displayName = name, relationshipType = type, usualPlaceId = usualPlaceId, notes = notes)
-        return personRepository.save(person)
+        val saved = personRepository.save(person)
+        val birthdayDate = importantDateService.createDefaultBirthday(saved.id)
+        if (birthday != null) {
+            importantDateService.saveImportantDate(birthdayDate.copy(date = birthday))
+        }
+        return saved
     }
 
     suspend fun updatePerson(person: Person): Person {
@@ -26,7 +33,10 @@ class PersonService @Inject constructor(
         return person
     }
 
-    suspend fun deletePerson(id: String) = personRepository.delete(id)
+    suspend fun deletePerson(id: String) {
+        importantDateService.deleteAllForPerson(id)
+        personRepository.delete(id)
+    }
 
     suspend fun getAllPeople(): List<Person> = personRepository.getAll()
 

@@ -27,11 +27,14 @@ fun DailyEntryFormScreen(
     onBack: () -> Unit,
     onNewInteraction: (date: String) -> Unit,
     onInteractionClick: (interactionId: String) -> Unit,
+    onManageMedicines: () -> Unit = {},
     viewModel: DailyEntryFormViewModel = hiltViewModel()
 ) {
     val entry by viewModel.entry.collectAsStateWithLifecycle()
     val allPlaces by viewModel.allPlaces.collectAsStateWithLifecycle()
     val interactions by viewModel.interactionsForDate.collectAsStateWithLifecycle()
+    val activeMedicinesWithBottles by viewModel.activeMedicinesWithBottles.collectAsStateWithLifecycle()
+    val dosedMedicineIds by viewModel.dosedMedicineIdsForDate.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -160,7 +163,56 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 6: Places Visited
+            // Section 6: Medications & Supplements
+            item {
+                CollapsibleSection("Medications & Supplements") {
+                    if (activeMedicinesWithBottles.isEmpty()) {
+                        Text(
+                            "No active medicines set up.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        activeMedicinesWithBottles.forEach { mwb ->
+                            val taken = mwb.medicine.id in dosedMedicineIds
+                            val outOfStock = mwb.currentBottle?.let { it.pillsRemaining <= 0 } ?: true
+                            Row(
+                                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(modifier = androidx.compose.ui.Modifier.weight(1f)) {
+                                    Text(mwb.medicine.name, style = MaterialTheme.typography.bodyMedium)
+                                    mwb.currentBottle?.let {
+                                        Text(
+                                            "${it.mgPerPill}mg  \u2022  ${it.pillsRemaining} left",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (it.pillsRemaining <= 7) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Checkbox(
+                                    checked = taken,
+                                    onCheckedChange = {
+                                        if (!outOfStock || taken) viewModel.toggleDose(mwb.medicine.id)
+                                    },
+                                    enabled = !outOfStock || taken
+                                )
+                            }
+                        }
+                    }
+                    TextButton(
+                        onClick = onManageMedicines,
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Medication, contentDescription = null, modifier = androidx.compose.ui.Modifier.size(16.dp))
+                        Spacer(androidx.compose.ui.Modifier.width(6.dp))
+                        Text("Manage Medicines")
+                    }
+                }
+            }
+
+            // Section 8: Places Visited
             item {
                 CollapsibleSection("Places Visited") {
                     if (entry.placesVisited.isNotEmpty()) {
@@ -178,7 +230,7 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 7: Weather
+            // Section 9: Weather
             if (entry.weatherSnapshots.isNotEmpty()) {
                 item {
                     CollapsibleSection("Weather", initiallyExpanded = true) {
@@ -189,7 +241,7 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 8: Notes & Tags
+            // Section 10: Notes & Tags
             item {
                 CollapsibleSection("Notes & Tags", initiallyExpanded = true) {
                     OutlinedTextField(

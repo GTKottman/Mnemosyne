@@ -19,7 +19,9 @@ class ImportExportService @Inject constructor(
     private val placeRepository: PlaceRepository,
     private val weatherRepository: WeatherRepository,
     private val settingsRepository: SettingsRepository,
-    private val interactionRepository: InteractionRepository
+    private val interactionRepository: InteractionRepository,
+    private val importantDateRepository: ImportantDateRepository,
+    private val medicineRepository: MedicineRepository
 ) {
     private val json = Json {
         prettyPrint = true
@@ -33,7 +35,11 @@ class ImportExportService @Inject constructor(
             people = personRepository.getAll(),
             places = placeRepository.getAll(),
             weatherSnapshots = weatherRepository.getAll(),
-            settings = settingsRepository.getSettings()
+            settings = settingsRepository.getSettings(),
+            importantDates = importantDateRepository.getAll(),
+            medicines = medicineRepository.getAll(),
+            medicineBottles = medicineRepository.getAllBottles(),
+            medicineDoses = medicineRepository.getAllDoses()
         )
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
         val file = File(context.getExternalFilesDir(null), "mnemosyne_backup_$timestamp.json")
@@ -48,6 +54,10 @@ class ImportExportService @Inject constructor(
             var skipped = 0
             backup.people.forEach { personRepository.save(it.toDomain()) }
             backup.places.forEach { placeRepository.save(it.toDomain()) }
+            backup.importantDates.forEach { importantDateRepository.save(it.toDomain()) }
+            backup.medicines.forEach { medicineRepository.save(it.toDomain()) }
+            backup.medicineBottles.forEach { medicineRepository.saveBottle(it.toDomain()) }
+            backup.medicineDoses.forEach { medicineRepository.saveDose(it.toDomain()) }
             backup.entries.forEach { serEntry ->
                 try {
                     val people = personRepository.getAll()

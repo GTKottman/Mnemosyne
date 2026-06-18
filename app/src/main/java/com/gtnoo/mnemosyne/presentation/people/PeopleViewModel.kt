@@ -6,11 +6,14 @@ import com.gtnoo.mnemosyne.data.remote.geocoding.GeocodingClient
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
 import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
+import com.gtnoo.mnemosyne.domain.service.ImportantDateService
 import com.gtnoo.mnemosyne.domain.service.PersonService
 import com.gtnoo.mnemosyne.domain.service.PlaceService
+import com.gtnoo.mnemosyne.notification.ImportantDateScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,9 +40,11 @@ class PeopleViewModel @Inject constructor(
 class AddEditPersonViewModel @Inject constructor(
     private val personRepository: PersonRepository,
     private val personService: PersonService,
+    private val importantDateService: ImportantDateService,
     private val placeRepository: PlaceRepository,
     private val placeService: PlaceService,
-    private val geocodingClient: GeocodingClient
+    private val geocodingClient: GeocodingClient,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
 
     private val _person = MutableStateFlow<Person?>(null)
@@ -72,6 +77,9 @@ class AddEditPersonViewModel @Inject constructor(
     private val _state = MutableStateFlow("")
     val state: StateFlow<String> = _state.asStateFlow()
 
+    private val _birthday = MutableStateFlow<LocalDate?>(null)
+    val birthday: StateFlow<LocalDate?> = _birthday.asStateFlow()
+
     private var linkedPlaceId: String? = null
     private var initialized = false
 
@@ -79,6 +87,7 @@ class AddEditPersonViewModel @Inject constructor(
     fun updateRelationshipType(value: RelationshipType) { _relationshipType.value = value }
     fun updateIsFavorite(value: Boolean) { _isFavorite.value = value }
     fun updateNotes(value: String) { _notes.value = value }
+    fun updateBirthday(value: LocalDate?) { _birthday.value = value }
 
     fun updateLatLng(lat: Double, lng: Double) {
         _latStr.value = lat.toString()
@@ -119,6 +128,7 @@ class AddEditPersonViewModel @Inject constructor(
                         _state.value = place.state
                     }
                 }
+                _birthday.value = importantDateService.getBirthdayForPerson(id)?.date
             }
         }
     }
@@ -134,8 +144,15 @@ class AddEditPersonViewModel @Inject constructor(
                 isFavorite = _isFavorite.value,
                 notes = _notes.value
             )
-            if (existing != null) personService.updatePerson(person)
-            else personService.addPerson(_name.value, _relationshipType.value, usualPlaceId, _notes.value)
+            if (existing != null) {
+                personService.updatePerson(person)
+                importantDateService.updateBirthday(existing.id, _birthday.value)
+            } else {
+                personService.addPerson(
+                    _name.value, _relationshipType.value, usualPlaceId, _notes.value, _birthday.value
+                )
+            }
+            ImportantDateScheduler.schedule(appContext)
             _saved.value = true
         }
     }

@@ -6,6 +6,7 @@ import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.EntryRepository
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
 import com.gtnoo.mnemosyne.domain.repository.SettingsRepository
+import com.gtnoo.mnemosyne.domain.service.ImportantDateService
 import com.gtnoo.mnemosyne.domain.service.PersonService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -18,6 +19,7 @@ class HomeViewModel @Inject constructor(
     private val entryRepository: EntryRepository,
     private val personRepository: PersonRepository,
     private val personService: PersonService,
+    private val importantDateService: ImportantDateService,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -36,6 +38,10 @@ class HomeViewModel @Inject constructor(
 
     private val _favoriteSummaries = MutableStateFlow<List<PersonSummary>>(emptyList())
     val favoriteSummaries: StateFlow<List<PersonSummary>> = _favoriteSummaries.asStateFlow()
+
+    val upcomingDates: StateFlow<List<UpcomingImportantDate>> =
+        importantDateService.observeUpcoming(30)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {

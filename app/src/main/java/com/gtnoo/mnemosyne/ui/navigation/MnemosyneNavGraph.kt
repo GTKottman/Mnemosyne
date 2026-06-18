@@ -17,29 +17,53 @@ import com.gtnoo.mnemosyne.presentation.history.EntryHistoryScreen
 import com.gtnoo.mnemosyne.presentation.home.HomeScreen
 import com.gtnoo.mnemosyne.presentation.importexport.ImportExportScreen
 import com.gtnoo.mnemosyne.presentation.interaction.InteractionFormScreen
+import com.gtnoo.mnemosyne.presentation.medicine.AddMedicineScreen
+import com.gtnoo.mnemosyne.presentation.medicine.MedicineDetailScreen
+import com.gtnoo.mnemosyne.presentation.medicine.MedicineListScreen
 import com.gtnoo.mnemosyne.presentation.onboarding.OnboardingScreen
 import com.gtnoo.mnemosyne.presentation.people.*
 import com.gtnoo.mnemosyne.presentation.places.*
 import com.gtnoo.mnemosyne.presentation.settings.SettingsScreen
 import com.gtnoo.mnemosyne.presentation.similarity.SimilarityResultsScreen
+import java.time.LocalDate
 
 data class BottomNavItem(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val screen: Screen)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
+fun MnemosyneNavGraph(
+    startDestination: String = Screen.Home.route,
+    initialPersonId: String? = null,
+    initialOpenInteraction: Boolean = false
+) {
     val navController = rememberNavController()
     val bottomItems = listOf(
         BottomNavItem("Home", Icons.Default.Home, Screen.Home),
         BottomNavItem("Journal", Icons.Default.Book, Screen.EntryHistory),
         BottomNavItem("People", Icons.Default.People, Screen.PeopleDirectory),
         BottomNavItem("Places", Icons.Default.LocationOn, Screen.PlacesDirectory),
+        BottomNavItem("Medicines", Icons.Default.Medication, Screen.MedicineList),
         BottomNavItem("Dashboard", Icons.Default.BarChart, Screen.VisualizationDashboard)
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     val showBottomBar = bottomItems.any { it.screen.route == currentRoute }
+
+    LaunchedEffect(initialPersonId, initialOpenInteraction) {
+        if (initialPersonId != null) {
+            if (initialOpenInteraction) {
+                navController.navigate(
+                    Screen.InteractionForm.create(
+                        personId = initialPersonId,
+                        date = LocalDate.now().toString()
+                    )
+                )
+            } else {
+                navController.navigate(Screen.PersonDetail.create(initialPersonId))
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -83,6 +107,14 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
                     onSettings = { navController.navigate(Screen.Settings.route) },
                     onImportExport = { navController.navigate(Screen.ImportExport.route) },
                     onPersonClick = { navController.navigate(Screen.PersonDetail.create(it)) },
+                    onLogInteractionForPerson = { personId ->
+                        navController.navigate(
+                            Screen.InteractionForm.create(
+                                personId = personId,
+                                date = LocalDate.now().toString()
+                            )
+                        )
+                    },
                     onHistory = { navController.navigate(Screen.EntryHistory.route) }
                 )
             }
@@ -106,21 +138,25 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
                     date = date,
                     onBack = { navController.popBackStack() },
                     onNewInteraction = { d -> navController.navigate(Screen.InteractionForm.create(date = d)) },
-                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) }
+                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) },
+                    onManageMedicines = { navController.navigate(Screen.MedicineList.route) }
                 )
             }
             composable(
                 route = Screen.InteractionForm.route,
                 arguments = listOf(
                     navArgument("interactionId") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("date") { type = NavType.StringType; defaultValue = "" }
+                    navArgument("date") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("personId") { type = NavType.StringType; defaultValue = "" }
                 )
             ) { backStackEntry ->
                 val interactionId = backStackEntry.arguments?.getString("interactionId")?.takeIf { it.isNotBlank() }
                 val date = backStackEntry.arguments?.getString("date")?.takeIf { it.isNotBlank() }
+                val personId = backStackEntry.arguments?.getString("personId")?.takeIf { it.isNotBlank() }
                 InteractionFormScreen(
                     interactionId = interactionId,
                     initialDate = date,
+                    initialPersonId = personId,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -198,6 +234,31 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.MedicineList.route) {
+                MedicineListScreen(
+                    onAddMedicine = { navController.navigate(Screen.AddEditMedicine.create()) },
+                    onMedicineClick = { navController.navigate(Screen.MedicineDetail.create(it)) },
+                    onEditMedicine = { navController.navigate(Screen.AddEditMedicine.create(it)) }
+                )
+            }
+            composable(
+                route = Screen.AddEditMedicine.route,
+                arguments = listOf(navArgument("medicineId") { type = NavType.StringType; defaultValue = "" })
+            ) { backStackEntry ->
+                val medicineId = backStackEntry.arguments?.getString("medicineId")?.takeIf { it.isNotBlank() }
+                AddMedicineScreen(medicineId = medicineId, onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Screen.MedicineDetail.route,
+                arguments = listOf(navArgument("medicineId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val medicineId = backStackEntry.arguments?.getString("medicineId") ?: return@composable
+                MedicineDetailScreen(
+                    medicineId = medicineId,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(Screen.AddEditMedicine.create(it)) }
+                )
             }
         }
     }

@@ -8,6 +8,10 @@ data class AppBackup(
     val places: List<SavedPlace>,
     val weatherSnapshots: List<WeatherSnapshot>,
     val settings: AppSettings,
+    val importantDates: List<ImportantDate> = emptyList(),
+    val medicines: List<Medicine> = emptyList(),
+    val medicineBottles: List<MedicineBottle> = emptyList(),
+    val medicineDoses: List<MedicineDose> = emptyList(),
     val exportedAt: LocalDateTime = LocalDateTime.now(),
     val appVersion: String = "0.1.0"
 )

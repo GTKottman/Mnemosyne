@@ -33,6 +33,7 @@ fun AddEditPersonScreen(
     val lngStr by viewModel.lngStr.collectAsStateWithLifecycle()
     val city by viewModel.city.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val birthday by viewModel.birthday.collectAsStateWithLifecycle()
     var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
     var showMapPicker by remember { mutableStateOf(false) }
     var mapInitialLat by remember { mutableStateOf<Double?>(null) }
@@ -115,6 +116,16 @@ fun AddEditPersonScreen(
                 label = "Mark as Favorite",
                 checked = isFavorite,
                 onCheckedChange = { viewModel.updateIsFavorite(it) }
+            )
+
+            Text(
+                "Important Dates",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            BirthdayDateField(
+                birthday = birthday,
+                onDateChange = { viewModel.updateBirthday(it) }
             )
 
             Text(

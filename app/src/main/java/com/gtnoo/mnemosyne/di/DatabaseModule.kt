@@ -19,7 +19,12 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MnemosyneDatabase =
         Room.databaseBuilder(context, MnemosyneDatabase::class.java, "mnemosyne.db")
-            .addMigrations(MnemosyneDatabase.MIGRATION_1_2, MnemosyneDatabase.MIGRATION_2_3)
+            .addMigrations(
+                MnemosyneDatabase.MIGRATION_1_2,
+                MnemosyneDatabase.MIGRATION_2_3,
+                MnemosyneDatabase.MIGRATION_3_4,
+                MnemosyneDatabase.MIGRATION_4_5
+            )
             .fallbackToDestructiveMigration()
             .build()
 
@@ -28,4 +33,6 @@ object DatabaseModule {
     @Provides fun provideDailyEntryDao(db: MnemosyneDatabase): DailyEntryDao = db.dailyEntryDao()
     @Provides fun provideWeatherSnapshotDao(db: MnemosyneDatabase): WeatherSnapshotDao = db.weatherSnapshotDao()
     @Provides fun provideInteractionDao(db: MnemosyneDatabase): InteractionDao = db.interactionDao()
+    @Provides fun provideImportantDateDao(db: MnemosyneDatabase): ImportantDateDao = db.importantDateDao()
+    @Provides fun provideMedicineDao(db: MnemosyneDatabase): MedicineDao = db.medicineDao()
 }

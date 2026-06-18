@@ -17,9 +17,12 @@ import androidx.lifecycle.viewModelScope
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
 import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
+import com.gtnoo.mnemosyne.domain.service.ImportantDateService
 import com.gtnoo.mnemosyne.domain.service.PersonService
+import com.gtnoo.mnemosyne.notification.ImportantDateScheduler
 import com.gtnoo.mnemosyne.ui.components.SectionLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
@@ -30,7 +33,9 @@ import javax.inject.Inject
 class PersonDetailViewModel @Inject constructor(
     private val personRepository: PersonRepository,
     private val personService: PersonService,
-    private val placeRepository: PlaceRepository
+    private val placeRepository: PlaceRepository,
+    private val importantDateService: ImportantDateService,
+    @ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
     private val _person = MutableStateFlow<Person?>(null)
     val person: StateFlow<Person?> = _person.asStateFlow()
@@ -41,6 +46,11 @@ class PersonDetailViewModel @Inject constructor(
     private val _summary = MutableStateFlow<PersonSummary?>(null)
     val summary: StateFlow<PersonSummary?> = _summary.asStateFlow()
 
+    private val _importantDates = MutableStateFlow<List<ImportantDate>>(emptyList())
+    val importantDates: StateFlow<List<ImportantDate>> = _importantDates.asStateFlow()
+
+    private var observeJob: kotlinx.coroutines.Job? = null
+
     fun load(personId: String) {
         viewModelScope.launch {
             val p = personRepository.getById(personId) ?: return@launch
@@ -48,6 +58,12 @@ class PersonDetailViewModel @Inject constructor(
             _linkedPlace.value = p.usualPlaceId?.let { placeRepository.getById(it) }
             val range = DateRange.lastThreeMonths()
             _summary.value = personService.getSummaryForPerson(p, range)
+        }
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch {
+            importantDateService.observeByPersonId(personId).collect { dates ->
+                _importantDates.value = dates
+            }
         }
     }
 
@@ -57,6 +73,20 @@ class PersonDetailViewModel @Inject constructor(
             val updated = p.copy(isFavorite = !p.isFavorite)
             personService.updatePerson(updated)
             _person.value = updated
+        }
+    }
+
+    fun saveImportantDate(date: ImportantDate) {
+        viewModelScope.launch {
+            importantDateService.saveImportantDate(date)
+            ImportantDateScheduler.schedule(appContext)
+        }
+    }
+
+    fun deleteImportantDate(id: String) {
+        viewModelScope.launch {
+            importantDateService.deleteImportantDate(id)
+            ImportantDateScheduler.schedule(appContext)
         }
     }
 }
@@ -74,6 +104,10 @@ fun PersonDetailScreen(
     val person by viewModel.person.collectAsStateWithLifecycle()
     val linkedPlace by viewModel.linkedPlace.collectAsStateWithLifecycle()
     val summary by viewModel.summary.collectAsStateWithLifecycle()
+    val importantDates by viewModel.importantDates.collectAsStateWithLifecycle()
+
+    var editingDate by remember { mutableStateOf<ImportantDate?>(null) }
+    var showAddDate by remember { mutableStateOf(false) }
 
     LaunchedEffect(personId) { viewModel.load(personId) }
 
@@ -166,6 +200,27 @@ fun PersonDetailScreen(
                     }
                 }
 
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SectionLabel("Important Dates")
+                        TextButton(onClick = { showAddDate = true }) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add")
+                        }
+                    }
+                }
+                items(importantDates, key = { it.id }) { date ->
+                    ImportantDateCard(
+                        date = date,
+                        onClick = { editingDate = date }
+                    )
+                }
+
                 summary?.let { s ->
                     item { SectionLabel("Summary") }
                     item {
@@ -189,6 +244,71 @@ fun PersonDetailScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    if (editingDate != null) {
+        ImportantDateDialog(
+            existing = editingDate,
+            personId = personId,
+            onDismiss = { editingDate = null },
+            onSave = { saved ->
+                viewModel.saveImportantDate(saved)
+                editingDate = null
+            },
+            onDelete = if (editingDate?.kind != ImportantDateKind.BIRTHDAY) {
+                { id ->
+                    viewModel.deleteImportantDate(id)
+                    editingDate = null
+                }
+            } else null
+        )
+    }
+
+    if (showAddDate) {
+        ImportantDateDialog(
+            existing = null,
+            personId = personId,
+            onDismiss = { showAddDate = false },
+            onSave = { saved ->
+                viewModel.saveImportantDate(saved)
+                showAddDate = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun ImportantDateCard(date: ImportantDate, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(date.label, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    date.date?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "Not set",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (date.isRecurring && date.date != null) {
+                    Text("Repeats yearly", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (date.notifyEnabled) {
+                Icon(
+                    Icons.Default.NotificationsActive,
+                    contentDescription = "Reminder enabled",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
