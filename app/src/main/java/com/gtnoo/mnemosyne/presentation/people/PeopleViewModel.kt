@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -80,6 +81,12 @@ class AddEditPersonViewModel @Inject constructor(
     private val _birthday = MutableStateFlow<LocalDate?>(null)
     val birthday: StateFlow<LocalDate?> = _birthday.asStateFlow()
 
+    private val _interactionReminderEnabled = MutableStateFlow(false)
+    val interactionReminderEnabled: StateFlow<Boolean> = _interactionReminderEnabled.asStateFlow()
+
+    private val _interactionReminderTime = MutableStateFlow<LocalTime?>(null)
+    val interactionReminderTime: StateFlow<LocalTime?> = _interactionReminderTime.asStateFlow()
+
     private var linkedPlaceId: String? = null
     private var initialized = false
 
@@ -88,6 +95,8 @@ class AddEditPersonViewModel @Inject constructor(
     fun updateIsFavorite(value: Boolean) { _isFavorite.value = value }
     fun updateNotes(value: String) { _notes.value = value }
     fun updateBirthday(value: LocalDate?) { _birthday.value = value }
+    fun updateInteractionReminderEnabled(value: Boolean) { _interactionReminderEnabled.value = value }
+    fun updateInteractionReminderTime(value: LocalTime?) { _interactionReminderTime.value = value }
 
     fun updateLatLng(lat: Double, lng: Double) {
         _latStr.value = lat.toString()
@@ -129,6 +138,8 @@ class AddEditPersonViewModel @Inject constructor(
                     }
                 }
                 _birthday.value = importantDateService.getBirthdayForPerson(id)?.date
+                _interactionReminderEnabled.value = p.interactionReminderEnabled
+                _interactionReminderTime.value = p.interactionReminderTime
             }
         }
     }
@@ -142,7 +153,9 @@ class AddEditPersonViewModel @Inject constructor(
                 relationshipType = _relationshipType.value,
                 usualPlaceId = usualPlaceId,
                 isFavorite = _isFavorite.value,
-                notes = _notes.value
+                notes = _notes.value,
+                interactionReminderEnabled = _interactionReminderEnabled.value,
+                interactionReminderTime = _interactionReminderTime.value
             )
             if (existing != null) {
                 personService.updatePerson(person)

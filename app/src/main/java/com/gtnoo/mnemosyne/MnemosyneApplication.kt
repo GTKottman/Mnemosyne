@@ -7,6 +7,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.gtnoo.mnemosyne.notification.ImportantDateNotificationHelper
 import com.gtnoo.mnemosyne.notification.ImportantDateScheduler
+import com.gtnoo.mnemosyne.notification.InteractionReminderScheduler
 import com.gtnoo.mnemosyne.notification.MedicineReminderScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -25,5 +26,6 @@ class MnemosyneApplication : Application(), Configuration.Provider {
         super.onCreate()
         ImportantDateScheduler.schedule(this)
         MedicineReminderScheduler.schedule(this)
+        InteractionReminderScheduler.schedule(this)
     }
 }

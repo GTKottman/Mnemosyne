@@ -78,6 +78,14 @@ class DailyEntryFormViewModel @Inject constructor(
         _entry.update { it.copy(healthContextData = health) }
     }
 
+    fun updateIntakeData(intake: IntakeData) {
+        _entry.update { it.copy(intakeData = intake) }
+    }
+
+    fun updateEnvironmentData(environment: EnvironmentData) {
+        _entry.update { it.copy(environmentData = environment) }
+    }
+
     fun updateNotes(notes: String) {
         _entry.update { it.copy(freeformNotes = notes) }
     }

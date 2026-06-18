@@ -14,6 +14,8 @@ class DailyEntryVectorizer @Inject constructor() {
             emotionVector = encodeEmotionData(entry.emotionData),
             thoughtVector = encodeThoughtData(entry.thoughtPatternData),
             healthVector = encodeHealthData(entry.healthContextData),
+            intakeVector = encodeIntakeData(entry.intakeData),
+            environmentVector = encodeEnvironmentData(entry.environmentData),
             weatherVector = encodeWeatherData(entry.weatherSnapshots.firstOrNull()),
             aggregateCommunicationVector = aggregateCommunication(interactions),
             aggregateInPersonVector = aggregateInPerson(interactions),
@@ -30,19 +32,33 @@ class DailyEntryVectorizer @Inject constructor() {
     )
 
     private fun encodeThoughtData(t: ThoughtPatternData) = doubleArrayOf(
-        encodeScale(t.ruminationLevel), encodeBoolean(t.checkedPhoneRepeatedly),
-        encodeBoolean(t.rereadMessages), encodeBoolean(t.imaginedNegativeOutcome),
-        encodeBoolean(t.imaginedPositiveOutcome), encodeScale(t.needForReassurance),
-        encodeScale(t.clarityLevel), encodeScale(t.uncertaintyLevel),
-        encodeScale(t.wantedToPullAway), encodeScale(t.wantedToReachOut)
+        encodeScale(t.ruminationLevel), encodeScale(t.intrusiveThoughts),
+        encodeScale(t.worryAnticipation), encodeScale(t.catastrophizing),
+        encodeScale(t.reassuranceUrge), encodeScale(t.mentalClarity),
+        encodeScale(t.uncertaintyTolerance), encodeScale(t.decisionFriction),
+        encodeScale(t.cognitiveFlexibility), encodeScale(t.selfTalkTone)
     )
 
     private fun encodeHealthData(h: HealthContextData) = doubleArrayOf(
-        encodeSleep(h.hoursSlept), encodeBoolean(h.ateEnough),
-        encodeCaffeine(h.caffeineIntakeMg), encodeScale(h.schoolStress),
-        encodeScale(h.workStress), encodeScale(h.sensoryOverload),
-        encodeScale(h.energyLevel), encodeScale(h.bodyDiscomfort),
-        encodeScale(h.executiveFunction), encodeScale(h.socialBattery)
+        encodeScale(h.energyLevel), encodeScale(h.socialBattery),
+        encodeScale(h.executiveFunction), encodeScale(h.mentalBandwidth),
+        encodeScale(h.bodyDiscomfort), encodeScale(h.sensoryEnvironmentalStrain),
+        encodeScale(h.sleepQuality), encodeScale(h.stressLoad),
+        encodeScale(h.workSchoolPressure), encodeScale(h.moneyPressure),
+        encodeScale(h.relationshipPressure), encodeScale(h.familyPressure),
+        encodeScale(h.healthPressure), encodeScale(h.timePressure)
+    )
+
+    private fun encodeIntakeData(i: IntakeData) = doubleArrayOf(
+        encodeSleep(i.hoursSlept), encodeCaffeine(i.caffeineIntakeMg),
+        encodeScale(i.foodAdequacy), encodeScale(i.hydration),
+        encodeScale(i.movementLevel)
+    )
+
+    private fun encodeEnvironmentData(e: EnvironmentData) = doubleArrayOf(
+        encodeScale(e.timeOutsideSunlight), encodeScale(e.screenLoad),
+        encodeScale(e.socialExposure), encodeScale(e.noveltyDisruption),
+        encodeScale(e.physicalSpaceQuality), encodeScale(e.weatherImpact)
     )
 
     private fun encodeWeatherData(w: WeatherSnapshot?): DoubleArray {

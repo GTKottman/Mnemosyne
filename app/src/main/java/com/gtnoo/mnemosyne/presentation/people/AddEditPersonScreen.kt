@@ -16,6 +16,8 @@ import com.gtnoo.mnemosyne.domain.model.RelationshipType
 import com.gtnoo.mnemosyne.ui.components.LocationPickerDialog
 import com.gtnoo.mnemosyne.ui.components.SwitchField
 import kotlinx.coroutines.launch
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,8 +36,11 @@ fun AddEditPersonScreen(
     val city by viewModel.city.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val birthday by viewModel.birthday.collectAsStateWithLifecycle()
+    val interactionReminderEnabled by viewModel.interactionReminderEnabled.collectAsStateWithLifecycle()
+    val interactionReminderTime by viewModel.interactionReminderTime.collectAsStateWithLifecycle()
     var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
     var showMapPicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var mapInitialLat by remember { mutableStateOf<Double?>(null) }
     var mapInitialLng by remember { mutableStateOf<Double?>(null) }
     val scope = rememberCoroutineScope()
@@ -182,6 +187,34 @@ fun AddEditPersonScreen(
                 maxLines = 4
             )
 
+            Text(
+                "Daily Interaction Reminder",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            SwitchField(
+                label = "Remind me to log an interaction",
+                checked = interactionReminderEnabled,
+                onCheckedChange = { viewModel.updateInteractionReminderEnabled(it) }
+            )
+            if (interactionReminderEnabled) {
+                val timeLabel = interactionReminderTime
+                    ?.format(DateTimeFormatter.ofPattern("h:mm a"))
+                    ?: "Not set"
+                OutlinedTextField(
+                    value = timeLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Reminder time") },
+                    trailingIcon = {
+                        IconButton(onClick = { showTimePicker = true }) {
+                            Icon(Icons.Default.Schedule, contentDescription = "Pick time")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Button(
                 onClick = {
                     viewModel.savePerson(
@@ -213,6 +246,30 @@ fun AddEditPersonScreen(
                 showMapPicker = false
             },
             onDismiss = { showMapPicker = false }
+        )
+    }
+
+    if (showTimePicker) {
+        val initial = interactionReminderTime ?: LocalTime.of(20, 0)
+        val timePickerState = rememberTimePickerState(
+            initialHour = initial.hour,
+            initialMinute = initial.minute
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Set reminder time") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateInteractionReminderTime(
+                        LocalTime.of(timePickerState.hour, timePickerState.minute)
+                    )
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            }
         )
     }
 }

@@ -91,7 +91,7 @@ class ImportExportService @Inject constructor(
                 "${entry.emotionData.connection},${entry.emotionData.clarity},${entry.emotionData.capacity}," +
                 "${entry.emotionData.hope},${entry.emotionData.worthiness},${entry.emotionData.peace}," +
                 "${entry.emotionData.energy},${entry.emotionData.agency},${entry.emotionData.presence}," +
-                "${entry.healthContextData.energyLevel},${entry.healthContextData.hoursSlept}," +
+                "${entry.healthContextData.energyLevel},${entry.intakeData.hoursSlept}," +
                 "${entry.interactions.size}"
             )
         }

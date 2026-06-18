@@ -49,7 +49,7 @@ class VisualizationService @Inject constructor(
         val entries = entryRepository.getBetweenDates(range.start, range.end)
         return entries.map { entry ->
             ScatterPoint(
-                x = entry.healthContextData.hoursSlept,
+                x = entry.intakeData.hoursSlept,
                 y = entry.emotionData.calm.toDouble(),
                 label = entry.entryDate.toString()
             )

@@ -121,6 +121,7 @@ fun MnemosyneNavGraph(
                 JournalScreen(
                     onEntryClick = { navController.navigate(Screen.EntryDetail.create(it)) },
                     onNewEntry = { navController.navigate(Screen.DailyEntryForm.create()) },
+                    onNewInteraction = { navController.navigate(Screen.InteractionForm.create()) },
                     onPersonClick = { navController.navigate(Screen.PersonDetail.create(it)) },
                     onAddPerson = { navController.navigate(Screen.AddEditPerson.create()) },
                     onPlaceClick = { navController.navigate(Screen.PlaceDetail.create(it)) },
@@ -142,9 +143,7 @@ fun MnemosyneNavGraph(
                 DailyEntryFormScreen(
                     entryId = entryId,
                     date = date,
-                    onBack = { navController.popBackStack() },
-                    onNewInteraction = { d -> navController.navigate(Screen.InteractionForm.create(date = d)) },
-                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) }
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(

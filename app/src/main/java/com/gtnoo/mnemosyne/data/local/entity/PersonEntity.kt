@@ -7,6 +7,7 @@ import com.gtnoo.mnemosyne.data.local.converter.Converters
 import com.gtnoo.mnemosyne.domain.model.Person
 import com.gtnoo.mnemosyne.domain.model.RelationshipType
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Entity(tableName = "people")
 @TypeConverters(Converters::class)
@@ -17,7 +18,9 @@ data class PersonEntity(
     val usualPlaceId: String?,
     val isFavorite: Boolean,
     val notes: String,
-    val addedOn: LocalDate
+    val addedOn: LocalDate,
+    val interactionReminderEnabled: Boolean = false,
+    val interactionReminderTime: LocalTime? = null
 ) {
     fun toDomain() = Person(
         id = id,
@@ -26,7 +29,9 @@ data class PersonEntity(
         usualPlaceId = usualPlaceId,
         isFavorite = isFavorite,
         notes = notes,
-        addedOn = addedOn
+        addedOn = addedOn,
+        interactionReminderEnabled = interactionReminderEnabled,
+        interactionReminderTime = interactionReminderTime
     )
 
     companion object {
@@ -37,7 +42,9 @@ data class PersonEntity(
             usualPlaceId = person.usualPlaceId,
             isFavorite = person.isFavorite,
             notes = person.notes,
-            addedOn = person.addedOn
+            addedOn = person.addedOn,
+            interactionReminderEnabled = person.interactionReminderEnabled,
+            interactionReminderTime = person.interactionReminderTime
         )
     }
 }

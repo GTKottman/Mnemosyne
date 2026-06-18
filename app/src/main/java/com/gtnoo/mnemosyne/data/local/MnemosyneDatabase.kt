@@ -23,7 +23,7 @@ import com.gtnoo.mnemosyne.data.local.entity.*
         MedicineBottleEntity::class,
         MedicineDoseEntity::class
     ],
-    version = 7,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -206,6 +206,214 @@ abstract class MnemosyneDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE medicines ADD COLUMN reminder_time TEXT")
                 db.execSQL("ALTER TABLE medicines ADD COLUMN notify_enabled INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE medicine_doses ADD COLUMN taken_at TEXT")
+            }
+        }
+
+        // Replaces health fields: drops 10 old columns (schoolStress, workStress, ateEnough Boolean,
+        // sensoryOverload) and adds 25 new columns across 4 groups (Core State, Stress Categories,
+        // Inputs, Environment). Maps: workSchoolPressure=MAX(school,work),
+        // sensoryEnvironmentalStrain=sensoryOverload, foodAdequacy from Boolean (ate=7, not=3).
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE daily_entries_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        entryDate TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        lastEditedAt TEXT NOT NULL,
+                        freeformNotes TEXT NOT NULL,
+                        tags TEXT NOT NULL,
+                        contextEntryType TEXT NOT NULL,
+                        contextSchoolDay INTEGER NOT NULL,
+                        contextWorkDay INTEGER NOT NULL,
+                        contextWeekend INTEGER NOT NULL,
+                        contextHoliday INTEGER NOT NULL,
+                        contextVacation INTEGER NOT NULL,
+                        emotionHappiness INTEGER NOT NULL,
+                        emotionSafety INTEGER NOT NULL,
+                        emotionCalm INTEGER NOT NULL,
+                        emotionConnection INTEGER NOT NULL,
+                        emotionClarity INTEGER NOT NULL,
+                        emotionCapacity INTEGER NOT NULL,
+                        emotionHope INTEGER NOT NULL,
+                        emotionWorthiness INTEGER NOT NULL,
+                        emotionPeace INTEGER NOT NULL,
+                        emotionEnergy INTEGER NOT NULL,
+                        emotionAgency INTEGER NOT NULL,
+                        emotionPresence INTEGER NOT NULL,
+                        thoughtRuminationLevel INTEGER NOT NULL,
+                        thoughtIntrusiveThoughts INTEGER NOT NULL,
+                        thoughtWorryAnticipation INTEGER NOT NULL,
+                        thoughtCatastrophizing INTEGER NOT NULL,
+                        thoughtReassuranceUrge INTEGER NOT NULL,
+                        thoughtMentalClarity INTEGER NOT NULL,
+                        thoughtUncertaintyTolerance INTEGER NOT NULL,
+                        thoughtDecisionFriction INTEGER NOT NULL,
+                        thoughtCognitiveFlexibility INTEGER NOT NULL,
+                        thoughtSelfTalkTone INTEGER NOT NULL,
+                        healthEnergyLevel INTEGER NOT NULL,
+                        healthSocialBattery INTEGER NOT NULL,
+                        healthExecutiveFunction INTEGER NOT NULL,
+                        healthMentalBandwidth INTEGER NOT NULL,
+                        healthBodyDiscomfort INTEGER NOT NULL,
+                        healthSensoryEnvironmentalStrain INTEGER NOT NULL,
+                        healthSleepQuality INTEGER NOT NULL,
+                        healthStressLoad INTEGER NOT NULL,
+                        healthWorkSchoolPressure INTEGER NOT NULL,
+                        healthMoneyPressure INTEGER NOT NULL,
+                        healthRelationshipPressure INTEGER NOT NULL,
+                        healthFamilyPressure INTEGER NOT NULL,
+                        healthHealthPressure INTEGER NOT NULL,
+                        healthTimePressure INTEGER NOT NULL,
+                        healthHoursSlept REAL NOT NULL,
+                        healthCaffeineIntakeMg INTEGER NOT NULL,
+                        healthFoodAdequacy INTEGER NOT NULL,
+                        healthHydration INTEGER NOT NULL,
+                        healthMovementLevel INTEGER NOT NULL,
+                        healthTimeOutsideSunlight INTEGER NOT NULL,
+                        healthScreenLoad INTEGER NOT NULL,
+                        healthSocialExposure INTEGER NOT NULL,
+                        healthNoveltyDisruption INTEGER NOT NULL,
+                        healthPhysicalSpaceQuality INTEGER NOT NULL,
+                        healthWeatherImpact INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO daily_entries_new
+                    SELECT
+                        id, entryDate, createdAt, lastEditedAt, freeformNotes, tags,
+                        contextEntryType, contextSchoolDay, contextWorkDay, contextWeekend,
+                        contextHoliday, contextVacation,
+                        emotionHappiness, emotionSafety, emotionCalm, emotionConnection,
+                        emotionClarity, emotionCapacity, emotionHope, emotionWorthiness,
+                        emotionPeace, emotionEnergy, emotionAgency, emotionPresence,
+                        thoughtRuminationLevel, thoughtIntrusiveThoughts, thoughtWorryAnticipation,
+                        thoughtCatastrophizing, thoughtReassuranceUrge, thoughtMentalClarity,
+                        thoughtUncertaintyTolerance, thoughtDecisionFriction, thoughtCognitiveFlexibility,
+                        thoughtSelfTalkTone,
+                        healthEnergyLevel,
+                        healthSocialBattery,
+                        healthExecutiveFunction,
+                        5,
+                        healthBodyDiscomfort,
+                        healthSensoryOverload,
+                        5,
+                        0,
+                        MAX(healthSchoolStress, healthWorkStress),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        healthHoursSlept,
+                        healthCaffeineIntakeMg,
+                        CASE WHEN healthAteEnough = 1 THEN 7 ELSE 3 END,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        5,
+                        0
+                    FROM daily_entries
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE daily_entries")
+                db.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
+            }
+        }
+
+        // Replaces thought fields: drops 4 booleans + wantedToPullAway + wantedToReachOut,
+        // renames needForReassurance->reassuranceUrge, clarityLevel->mentalClarity,
+        // uncertaintyLevel->uncertaintyTolerance, and adds 6 new Int columns.
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE daily_entries_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        entryDate TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        lastEditedAt TEXT NOT NULL,
+                        freeformNotes TEXT NOT NULL,
+                        tags TEXT NOT NULL,
+                        contextEntryType TEXT NOT NULL,
+                        contextSchoolDay INTEGER NOT NULL,
+                        contextWorkDay INTEGER NOT NULL,
+                        contextWeekend INTEGER NOT NULL,
+                        contextHoliday INTEGER NOT NULL,
+                        contextVacation INTEGER NOT NULL,
+                        emotionHappiness INTEGER NOT NULL,
+                        emotionSafety INTEGER NOT NULL,
+                        emotionCalm INTEGER NOT NULL,
+                        emotionConnection INTEGER NOT NULL,
+                        emotionClarity INTEGER NOT NULL,
+                        emotionCapacity INTEGER NOT NULL,
+                        emotionHope INTEGER NOT NULL,
+                        emotionWorthiness INTEGER NOT NULL,
+                        emotionPeace INTEGER NOT NULL,
+                        emotionEnergy INTEGER NOT NULL,
+                        emotionAgency INTEGER NOT NULL,
+                        emotionPresence INTEGER NOT NULL,
+                        thoughtRuminationLevel INTEGER NOT NULL,
+                        thoughtIntrusiveThoughts INTEGER NOT NULL,
+                        thoughtWorryAnticipation INTEGER NOT NULL,
+                        thoughtCatastrophizing INTEGER NOT NULL,
+                        thoughtReassuranceUrge INTEGER NOT NULL,
+                        thoughtMentalClarity INTEGER NOT NULL,
+                        thoughtUncertaintyTolerance INTEGER NOT NULL,
+                        thoughtDecisionFriction INTEGER NOT NULL,
+                        thoughtCognitiveFlexibility INTEGER NOT NULL,
+                        thoughtSelfTalkTone INTEGER NOT NULL,
+                        healthHoursSlept REAL NOT NULL,
+                        healthAteEnough INTEGER NOT NULL,
+                        healthCaffeineIntakeMg INTEGER NOT NULL,
+                        healthSchoolStress INTEGER NOT NULL,
+                        healthWorkStress INTEGER NOT NULL,
+                        healthSensoryOverload INTEGER NOT NULL,
+                        healthEnergyLevel INTEGER NOT NULL,
+                        healthBodyDiscomfort INTEGER NOT NULL,
+                        healthExecutiveFunction INTEGER NOT NULL,
+                        healthSocialBattery INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO daily_entries_new
+                    SELECT
+                        id, entryDate, createdAt, lastEditedAt, freeformNotes, tags,
+                        contextEntryType, contextSchoolDay, contextWorkDay, contextWeekend,
+                        contextHoliday, contextVacation,
+                        emotionHappiness, emotionSafety, emotionCalm, emotionConnection,
+                        emotionClarity, emotionCapacity, emotionHope, emotionWorthiness,
+                        emotionPeace, emotionEnergy, emotionAgency, emotionPresence,
+                        thoughtRuminationLevel,
+                        0,
+                        0,
+                        0,
+                        thoughtNeedReassurance,
+                        thoughtClarityLevel,
+                        thoughtUncertaintyLevel,
+                        0,
+                        0,
+                        5,
+                        healthHoursSlept, healthAteEnough, healthCaffeineIntakeMg,
+                        healthSchoolStress, healthWorkStress, healthSensoryOverload,
+                        healthEnergyLevel, healthBodyDiscomfort, healthExecutiveFunction,
+                        healthSocialBattery
+                    FROM daily_entries
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE daily_entries")
+                db.execSQL("ALTER TABLE daily_entries_new RENAME TO daily_entries")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE people ADD COLUMN interactionReminderEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE people ADD COLUMN interactionReminderTime TEXT")
             }
         }
 

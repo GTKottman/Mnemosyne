@@ -5,6 +5,8 @@ data class DailyEntryVector(
     val emotionVector: DoubleArray,
     val thoughtVector: DoubleArray,
     val healthVector: DoubleArray,
+    val intakeVector: DoubleArray,
+    val environmentVector: DoubleArray,
     val weatherVector: DoubleArray,
     val aggregateCommunicationVector: DoubleArray,
     val aggregateInPersonVector: DoubleArray,
@@ -15,6 +17,8 @@ data class DailyEntryVector(
         emotionVector +
         thoughtVector +
         healthVector +
+        intakeVector +
+        environmentVector +
         weatherVector +
         aggregateCommunicationVector +
         aggregateInPersonVector +

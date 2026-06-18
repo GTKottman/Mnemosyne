@@ -96,12 +96,6 @@ fun EntryDetailScreen(
                 }
                 item { SectionLabel("Emotions") }
                 item { EmotionGrid(e.emotionData) }
-                if (e.interactions.isNotEmpty()) {
-                    item { SectionLabel("People & Interactions") }
-                    items(e.interactions) { interaction ->
-                        InteractionSummaryCard(interaction)
-                    }
-                }
                 if (e.placesVisited.isNotEmpty()) {
                     item { SectionLabel("Places Visited") }
                     item {
@@ -115,7 +109,7 @@ fun EntryDetailScreen(
                     items(e.weatherSnapshots) { WeatherCard(it, useFahrenheit = settings.useFahrenheit) }
                 }
                 item { SectionLabel("Health Context") }
-                item { HealthSummaryCard(e.healthContextData) }
+                item { HealthSummaryCard(e.healthContextData, e.intakeData) }
                 if (e.freeformNotes.isNotBlank()) {
                     item { SectionLabel("Notes") }
                     item {
@@ -159,33 +153,10 @@ private fun EmotionGrid(emotion: EmotionData) {
 }
 
 @Composable
-private fun InteractionSummaryCard(interaction: PersonInteraction) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(interaction.person.displayName, style = MaterialTheme.typography.titleSmall)
-                Text(interaction.mode.label, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Connection: ${interaction.relationshipSignalData.feltConnectionStable}",
-                    style = MaterialTheme.typography.bodySmall)
-                Text("Safe: ${interaction.relationshipSignalData.feltSafeWithThem}",
-                    style = MaterialTheme.typography.bodySmall)
-            }
-            if (interaction.notes.isNotBlank()) {
-                Text(interaction.notes, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-private fun HealthSummaryCard(health: HealthContextData) {
+private fun HealthSummaryCard(health: HealthContextData, intake: IntakeData) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            StatItem("Sleep", "${health.hoursSlept}h")
+            StatItem("Sleep", "${intake.hoursSlept}h")
             StatItem("Energy", "${health.energyLevel}/10")
             StatItem("Social", "${health.socialBattery}/10")
             StatItem("Exec Fn", "${health.executiveFunction}/10")

@@ -2,13 +2,13 @@ package com.gtnoo.mnemosyne.domain.model
 
 data class ThoughtPatternData(
     val ruminationLevel: Int = 0,
-    val checkedPhoneRepeatedly: Boolean = false,
-    val rereadMessages: Boolean = false,
-    val imaginedNegativeOutcome: Boolean = false,
-    val imaginedPositiveOutcome: Boolean = false,
-    val needForReassurance: Int = 0,
-    val clarityLevel: Int = 0,
-    val uncertaintyLevel: Int = 0,
-    val wantedToPullAway: Int = 0,
-    val wantedToReachOut: Int = 0
+    val intrusiveThoughts: Int = 0,
+    val worryAnticipation: Int = 0,
+    val catastrophizing: Int = 0,
+    val reassuranceUrge: Int = 0,
+    val mentalClarity: Int = 0,
+    val uncertaintyTolerance: Int = 0,
+    val decisionFriction: Int = 0,
+    val cognitiveFlexibility: Int = 0,
+    val selfTalkTone: Int = 5
 )

@@ -51,6 +51,10 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateSettings(settings.value.copy(useFahrenheit = enabled))
         }
     }
+
+    fun updateSettings(updated: AppSettings) {
+        viewModelScope.launch { settingsRepository.updateSettings(updated) }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,6 +128,47 @@ fun SettingsScreen(
                     checked = settings.useFahrenheit,
                     onCheckedChange = { viewModel.setUseFahrenheit(it) }
                 )
+            }
+            item {
+                HorizontalDivider()
+                Spacer(Modifier.height(4.dp))
+                Text("Stress Categories", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Choose which stress categories appear in the Body & Life Context section of each entry.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            item {
+                SwitchField("Work / School Pressure", settings.showWorkSchoolPressure) {
+                    viewModel.updateSettings(settings.copy(showWorkSchoolPressure = it))
+                }
+            }
+            item {
+                SwitchField("Money Pressure", settings.showMoneyPressure) {
+                    viewModel.updateSettings(settings.copy(showMoneyPressure = it))
+                }
+            }
+            item {
+                SwitchField("Relationship / Social Pressure", settings.showRelationshipPressure) {
+                    viewModel.updateSettings(settings.copy(showRelationshipPressure = it))
+                }
+            }
+            item {
+                SwitchField("Family Pressure", settings.showFamilyPressure) {
+                    viewModel.updateSettings(settings.copy(showFamilyPressure = it))
+                }
+            }
+            item {
+                SwitchField("Health Pressure", settings.showHealthPressure) {
+                    viewModel.updateSettings(settings.copy(showHealthPressure = it))
+                }
+            }
+            item {
+                SwitchField("Time Pressure", settings.showTimePressure) {
+                    viewModel.updateSettings(settings.copy(showTimePressure = it))
+                }
             }
             item {
                 HorizontalDivider()

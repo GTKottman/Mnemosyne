@@ -26,15 +26,12 @@ fun DailyEntryFormScreen(
     entryId: String?,
     date: String?,
     onBack: () -> Unit,
-    onNewInteraction: (date: String) -> Unit,
-    onInteractionClick: (interactionId: String) -> Unit,
     viewModel: DailyEntryFormViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val entry by viewModel.entry.collectAsStateWithLifecycle()
     val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
     val allPlaces by viewModel.allPlaces.collectAsStateWithLifecycle()
-    val interactions by viewModel.interactionsForDate.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -104,44 +101,6 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 2: Interactions (read-only, sourced from InteractionRepository by date)
-            item {
-                CollapsibleSection("Interactions", initiallyExpanded = true) {
-                    if (interactions.isEmpty()) {
-                        Text(
-                            "No interactions logged for this date.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(interactions) { interaction ->
-                                AssistChip(
-                                    onClick = { onInteractionClick(interaction.id) },
-                                    label = { Text(interaction.person.displayName) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { onNewInteraction(entry.entryDate.toString()) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Log Interaction for this Date")
-                    }
-                }
-            }
-
             // Section 3: My Feelings
             item {
                 CollapsibleSection("My Feelings", initiallyExpanded = true) {
@@ -156,10 +115,24 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 5: Body & Life Context
+            // Section 5: Body & State
             item {
-                CollapsibleSection("Body & Life Context") {
-                    HealthSection(entry.healthContextData) { viewModel.updateHealthData(it) }
+                CollapsibleSection("Body & State") {
+                    HealthSection(entry.healthContextData, settings) { viewModel.updateHealthData(it) }
+                }
+            }
+
+            // Section 6: Inputs & Intake
+            item {
+                CollapsibleSection("Inputs & Intake") {
+                    IntakeSection(entry.intakeData) { viewModel.updateIntakeData(it) }
+                }
+            }
+
+            // Section 7: Environment & Day Shape
+            item {
+                CollapsibleSection("Environment & Day Shape") {
+                    EnvironmentSection(entry.environmentData) { viewModel.updateEnvironmentData(it) }
                 }
             }
 
@@ -311,39 +284,80 @@ private fun EmotionSection(emotion: EmotionData, onUpdate: (EmotionData) -> Unit
 @Composable
 private fun ThoughtSection(thought: ThoughtPatternData, onUpdate: (ThoughtPatternData) -> Unit) {
     SliderField("Rumination Level", thought.ruminationLevel) { onUpdate(thought.copy(ruminationLevel = it)) }
-    SliderField("Need for Reassurance", thought.needForReassurance) { onUpdate(thought.copy(needForReassurance = it)) }
-    SliderField("Clarity", thought.clarityLevel) { onUpdate(thought.copy(clarityLevel = it)) }
-    SliderField("Uncertainty", thought.uncertaintyLevel) { onUpdate(thought.copy(uncertaintyLevel = it)) }
-    SliderField("Wanted to Pull Away", thought.wantedToPullAway) { onUpdate(thought.copy(wantedToPullAway = it)) }
-    SliderField("Wanted to Reach Out", thought.wantedToReachOut) { onUpdate(thought.copy(wantedToReachOut = it)) }
-    SwitchField("Checked Phone Repeatedly", thought.checkedPhoneRepeatedly) { onUpdate(thought.copy(checkedPhoneRepeatedly = it)) }
-    SwitchField("Reread Messages", thought.rereadMessages) { onUpdate(thought.copy(rereadMessages = it)) }
-    SwitchField("Imagined Negative Outcome", thought.imaginedNegativeOutcome) { onUpdate(thought.copy(imaginedNegativeOutcome = it)) }
-    SwitchField("Imagined Positive Outcome", thought.imaginedPositiveOutcome) { onUpdate(thought.copy(imaginedPositiveOutcome = it)) }
+    SliderField("Intrusive Thoughts", thought.intrusiveThoughts) { onUpdate(thought.copy(intrusiveThoughts = it)) }
+    SliderField("Worry / Anticipation", thought.worryAnticipation) { onUpdate(thought.copy(worryAnticipation = it)) }
+    SliderField("Catastrophizing", thought.catastrophizing) { onUpdate(thought.copy(catastrophizing = it)) }
+    SliderField("Reassurance Urge", thought.reassuranceUrge) { onUpdate(thought.copy(reassuranceUrge = it)) }
+    SliderField("Mental Clarity", thought.mentalClarity) { onUpdate(thought.copy(mentalClarity = it)) }
+    SliderField("Uncertainty Tolerance", thought.uncertaintyTolerance) { onUpdate(thought.copy(uncertaintyTolerance = it)) }
+    SliderField("Decision Friction", thought.decisionFriction) { onUpdate(thought.copy(decisionFriction = it)) }
+    SliderField("Cognitive Flexibility", thought.cognitiveFlexibility) { onUpdate(thought.copy(cognitiveFlexibility = it)) }
+    SliderField("", thought.selfTalkTone, leftLabel = "Self-Critical", rightLabel = "Kind & Supportive") { onUpdate(thought.copy(selfTalkTone = it)) }
 }
 
 @Composable
-private fun HealthSection(health: HealthContextData, onUpdate: (HealthContextData) -> Unit) {
-    SliderField("Energy Level", health.energyLevel) { onUpdate(health.copy(energyLevel = it)) }
-    SliderField("Social Battery", health.socialBattery) { onUpdate(health.copy(socialBattery = it)) }
-    SliderField("Executive Function", health.executiveFunction) { onUpdate(health.copy(executiveFunction = it)) }
-    SliderField("School Stress", health.schoolStress) { onUpdate(health.copy(schoolStress = it)) }
-    SliderField("Work Stress", health.workStress) { onUpdate(health.copy(workStress = it)) }
-    SliderField("Sensory Overload", health.sensoryOverload) { onUpdate(health.copy(sensoryOverload = it)) }
-    SliderField("Body Discomfort", health.bodyDiscomfort) { onUpdate(health.copy(bodyDiscomfort = it)) }
+private fun HealthSection(health: HealthContextData, settings: AppSettings, onUpdate: (HealthContextData) -> Unit) {
+    SliderField("", health.energyLevel, leftLabel = "Low Energy", rightLabel = "High Energy") { onUpdate(health.copy(energyLevel = it)) }
+    SliderField("", health.socialBattery, leftLabel = "Drained", rightLabel = "Socially Available") { onUpdate(health.copy(socialBattery = it)) }
+    SliderField("", health.executiveFunction, leftLabel = "Can't Initiate", rightLabel = "Can Act & Organize") { onUpdate(health.copy(executiveFunction = it)) }
+    SliderField("", health.mentalBandwidth, leftLabel = "Overloaded", rightLabel = "Spacious") { onUpdate(health.copy(mentalBandwidth = it)) }
+    SliderField("", health.bodyDiscomfort, leftLabel = "Comfortable", rightLabel = "Discomfort") { onUpdate(health.copy(bodyDiscomfort = it)) }
+    SliderField("", health.sensoryEnvironmentalStrain, leftLabel = "Easy Environment", rightLabel = "Taxing Environment") { onUpdate(health.copy(sensoryEnvironmentalStrain = it)) }
+    SliderField("", health.sleepQuality, leftLabel = "Poor / Restless", rightLabel = "Good / Restorative") { onUpdate(health.copy(sleepQuality = it)) }
+    SliderField("", health.stressLoad, leftLabel = "Calm Day", rightLabel = "High-Pressure Day") { onUpdate(health.copy(stressLoad = it)) }
+
+    if (settings.showWorkSchoolPressure || settings.showMoneyPressure || settings.showRelationshipPressure ||
+        settings.showFamilyPressure || settings.showHealthPressure || settings.showTimePressure) {
+        Spacer(Modifier.height(4.dp))
+        Text("Stress", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        if (settings.showWorkSchoolPressure) {
+            SliderField("Work / School Pressure", health.workSchoolPressure) { onUpdate(health.copy(workSchoolPressure = it)) }
+        }
+        if (settings.showMoneyPressure) {
+            SliderField("Money Pressure", health.moneyPressure) { onUpdate(health.copy(moneyPressure = it)) }
+        }
+        if (settings.showRelationshipPressure) {
+            SliderField("Relationship / Social Pressure", health.relationshipPressure) { onUpdate(health.copy(relationshipPressure = it)) }
+        }
+        if (settings.showFamilyPressure) {
+            SliderField("Family Pressure", health.familyPressure) { onUpdate(health.copy(familyPressure = it)) }
+        }
+        if (settings.showHealthPressure) {
+            SliderField("Health Pressure", health.healthPressure) { onUpdate(health.copy(healthPressure = it)) }
+        }
+        if (settings.showTimePressure) {
+            SliderField("Time Pressure", health.timePressure) { onUpdate(health.copy(timePressure = it)) }
+        }
+    }
+}
+
+@Composable
+private fun IntakeSection(intake: IntakeData, onUpdate: (IntakeData) -> Unit) {
     OutlinedTextField(
-        value = if (health.hoursSlept == 0.0) "" else health.hoursSlept.toString(),
-        onValueChange = { onUpdate(health.copy(hoursSlept = it.toDoubleOrNull() ?: 0.0)) },
+        value = if (intake.hoursSlept == 0.0) "" else intake.hoursSlept.toString(),
+        onValueChange = { onUpdate(intake.copy(hoursSlept = it.toDoubleOrNull() ?: 0.0)) },
         label = { Text("Hours Slept") },
         modifier = Modifier.fillMaxWidth(), singleLine = true
     )
     OutlinedTextField(
-        value = if (health.caffeineIntakeMg == 0) "" else health.caffeineIntakeMg.toString(),
-        onValueChange = { onUpdate(health.copy(caffeineIntakeMg = it.toIntOrNull() ?: 0)) },
+        value = if (intake.caffeineIntakeMg == 0) "" else intake.caffeineIntakeMg.toString(),
+        onValueChange = { onUpdate(intake.copy(caffeineIntakeMg = it.toIntOrNull() ?: 0)) },
         label = { Text("Caffeine (mg)") },
         modifier = Modifier.fillMaxWidth(), singleLine = true
     )
-    SwitchField("Ate Enough", health.ateEnough) { onUpdate(health.copy(ateEnough = it)) }
+    SliderField("", intake.foodAdequacy, leftLabel = "Didn't Eat", rightLabel = "Well Nourished") { onUpdate(intake.copy(foodAdequacy = it)) }
+    SliderField("", intake.hydration, leftLabel = "Dehydrated", rightLabel = "Well Hydrated") { onUpdate(intake.copy(hydration = it)) }
+    SliderField("", intake.movementLevel, leftLabel = "No Movement", rightLabel = "Heavy Exercise") { onUpdate(intake.copy(movementLevel = it)) }
+}
+
+@Composable
+private fun EnvironmentSection(environment: EnvironmentData, onUpdate: (EnvironmentData) -> Unit) {
+    SliderField("", environment.timeOutsideSunlight, leftLabel = "Indoor All Day", rightLabel = "Outside a Lot") { onUpdate(environment.copy(timeOutsideSunlight = it)) }
+    SliderField("", environment.screenLoad, leftLabel = "Low Screen Time", rightLabel = "High Screen Time") { onUpdate(environment.copy(screenLoad = it)) }
+    SliderField("", environment.socialExposure, leftLabel = "No Exposure", rightLabel = "Lots of Exposure") { onUpdate(environment.copy(socialExposure = it)) }
+    SliderField("", environment.noveltyDisruption, leftLabel = "Routine Day", rightLabel = "Disrupted / Unusual") { onUpdate(environment.copy(noveltyDisruption = it)) }
+    SliderField("", environment.physicalSpaceQuality, leftLabel = "Messy / Chaotic", rightLabel = "Clean / Supportive") { onUpdate(environment.copy(physicalSpaceQuality = it)) }
+    SliderField("", environment.weatherImpact, leftLabel = "No Effect", rightLabel = "Strongly Affected") { onUpdate(environment.copy(weatherImpact = it)) }
 }
 
 @Composable

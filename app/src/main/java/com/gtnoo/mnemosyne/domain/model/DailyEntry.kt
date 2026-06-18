@@ -14,6 +14,8 @@ data class DailyEntry(
     val emotionData: EmotionData = EmotionData(),
     val thoughtPatternData: ThoughtPatternData = ThoughtPatternData(),
     val healthContextData: HealthContextData = HealthContextData(),
+    val intakeData: IntakeData = IntakeData(),
+    val environmentData: EnvironmentData = EnvironmentData(),
     val placesVisited: List<SavedPlace> = emptyList(),
     val weatherSnapshots: List<WeatherSnapshot> = emptyList(),
     val freeformNotes: String = "",

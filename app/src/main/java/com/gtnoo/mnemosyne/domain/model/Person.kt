@@ -1,6 +1,7 @@
 package com.gtnoo.mnemosyne.domain.model
 
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 
 data class Person(
@@ -10,5 +11,7 @@ data class Person(
     val usualPlaceId: String? = null,
     val isFavorite: Boolean = false,
     val notes: String = "",
-    val addedOn: LocalDate = LocalDate.now()
+    val addedOn: LocalDate = LocalDate.now(),
+    val interactionReminderEnabled: Boolean = false,
+    val interactionReminderTime: LocalTime? = null
 )
