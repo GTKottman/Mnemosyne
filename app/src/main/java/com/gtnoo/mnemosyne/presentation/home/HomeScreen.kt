@@ -23,6 +23,7 @@ import java.time.format.FormatStyle
 @Composable
 fun HomeScreen(
     onNewEntry: () -> Unit,
+    onNewInteraction: () -> Unit,
     onEntryClick: (String) -> Unit,
     onPersonClick: (String) -> Unit,
     onHistory: () -> Unit,
@@ -39,11 +40,19 @@ fun HomeScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNewEntry,
-                icon = { Icon(Icons.Default.Add, "New Entry") },
-                text = { Text("New Entry") }
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallFloatingActionButton(onClick = onNewInteraction) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = "Log Interaction")
+                }
+                ExtendedFloatingActionButton(
+                    onClick = onNewEntry,
+                    icon = { Icon(Icons.Default.Add, "New Entry") },
+                    text = { Text("New Entry") }
+                )
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -95,17 +104,22 @@ fun HomeScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("No entry yet today", style = MaterialTheme.typography.titleSmall)
-                                Text("How are you doing?", style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("No entry yet today", style = MaterialTheme.typography.titleSmall)
+                            Text("How are you doing?", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = onNewEntry, modifier = Modifier.weight(1f)) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Log Entry")
+                                }
+                                OutlinedButton(onClick = onNewInteraction, modifier = Modifier.weight(1f)) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Log Interaction")
+                                }
                             }
-                            Button(onClick = onNewEntry) { Text("Log Entry") }
                         }
                     }
                 } else {

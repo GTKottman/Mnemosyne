@@ -7,6 +7,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -17,7 +18,8 @@ class ImportExportService @Inject constructor(
     private val personRepository: PersonRepository,
     private val placeRepository: PlaceRepository,
     private val weatherRepository: WeatherRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val interactionRepository: InteractionRepository
 ) {
     private val json = Json {
         prettyPrint = true
@@ -50,7 +52,13 @@ class ImportExportService @Inject constructor(
                 try {
                     val people = personRepository.getAll()
                     val places = placeRepository.getAll()
+                    val peopleMap = people.associateBy { it.id }
+                    val entryDate = LocalDate.parse(serEntry.entryDate)
                     entryRepository.save(serEntry.toDomain(people, places))
+                    serEntry.interactions.forEach { intDto ->
+                        val person = peopleMap[intDto.personId] ?: return@forEach
+                        interactionRepository.save(intDto.toDomain(person, entryDate))
+                    }
                     imported++
                 } catch (e: Exception) {
                     skipped++

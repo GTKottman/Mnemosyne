@@ -3,6 +3,7 @@ package com.gtnoo.mnemosyne.presentation.entry
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gtnoo.mnemosyne.domain.model.*
+import com.gtnoo.mnemosyne.domain.repository.InteractionRepository
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
 import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
 import com.gtnoo.mnemosyne.domain.service.EntryService
@@ -16,16 +17,20 @@ import javax.inject.Inject
 class DailyEntryFormViewModel @Inject constructor(
     private val entryService: EntryService,
     private val personRepository: PersonRepository,
-    private val placeRepository: PlaceRepository
+    private val placeRepository: PlaceRepository,
+    private val interactionRepository: InteractionRepository
 ) : ViewModel() {
 
     private val _entry = MutableStateFlow(DailyEntry())
     val entry: StateFlow<DailyEntry> = _entry.asStateFlow()
 
-    val allPeople: StateFlow<List<Person>> = personRepository.observeAll()
+    val allPlaces: StateFlow<List<SavedPlace>> = placeRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val allPlaces: StateFlow<List<SavedPlace>> = placeRepository.observeAll()
+    val interactionsForDate: StateFlow<List<PersonInteraction>> = _entry
+        .map { it.entryDate }
+        .distinctUntilChanged()
+        .flatMapLatest { date -> interactionRepository.observeByDate(date) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _saved = MutableStateFlow(false)
@@ -79,23 +84,6 @@ class DailyEntryFormViewModel @Inject constructor(
 
     fun updateTags(tags: List<String>) {
         _entry.update { it.copy(tags = tags) }
-    }
-
-    fun addPersonInteraction(person: Person) {
-        val existing = _entry.value.interactions.any { it.person.id == person.id }
-        if (existing) return
-        val interaction = PersonInteraction(entryId = _entry.value.id, person = person)
-        _entry.update { it.copy(interactions = it.interactions + interaction) }
-    }
-
-    fun removePersonInteraction(personId: String) {
-        _entry.update { it.copy(interactions = it.interactions.filter { i -> i.person.id != personId }) }
-    }
-
-    fun updateInteraction(updated: PersonInteraction) {
-        _entry.update { entry ->
-            entry.copy(interactions = entry.interactions.map { if (it.id == updated.id) updated else it })
-        }
     }
 
     fun addPlace(place: SavedPlace) {

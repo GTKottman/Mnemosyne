@@ -42,6 +42,14 @@ sealed class Screen(val route: String) {
         fun create(entryId: String) = "similarity/$entryId"
     }
 
+    object InteractionForm : Screen("interaction/form?interactionId={interactionId}&date={date}") {
+        fun create(interactionId: String? = null, date: String? = null): String {
+            val idPart = interactionId ?: ""
+            val datePart = date ?: ""
+            return "interaction/form?interactionId=$idPart&date=$datePart"
+        }
+    }
+
     object ImportExport : Screen("importexport")
     object Settings : Screen("settings")
 }

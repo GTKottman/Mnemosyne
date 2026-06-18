@@ -56,7 +56,6 @@ data class SerializableEntry(
     val emotionExcited: Int, val emotionConnected: Int, val emotionRegulated: Int
 ) {
     fun toDomain(people: List<Person>, places: List<SavedPlace>): DailyEntry {
-        val peopleMap = people.associateBy { it.id }
         val placesMap = places.associateBy { it.id }
         return DailyEntry(
             id = id,
@@ -68,10 +67,7 @@ data class SerializableEntry(
                 happy = emotionHappy, calm = emotionCalm, lonely = emotionLonely,
                 excited = emotionExcited, connected = emotionConnected, regulated = emotionRegulated
             ),
-            interactions = interactions.mapNotNull { intDto ->
-                val person = peopleMap[intDto.personId] ?: return@mapNotNull null
-                intDto.toDomain(person)
-            },
+            interactions = emptyList(),
             placesVisited = placesVisitedIds.mapNotNull { placesMap[it] }
         )
     }
@@ -81,8 +77,8 @@ data class SerializableEntry(
 data class SerializableInteraction(
     val id: String, val personId: String, val mode: String, val notes: String
 ) {
-    fun toDomain(person: Person) = PersonInteraction(
-        id = id, entryId = "", person = person,
+    fun toDomain(person: Person, date: LocalDate) = PersonInteraction(
+        id = id, date = date, person = person,
         mode = InteractionMode.valueOf(mode), notes = notes
     )
 }

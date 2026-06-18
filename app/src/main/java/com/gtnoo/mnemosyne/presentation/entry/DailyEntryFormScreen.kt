@@ -25,18 +25,19 @@ fun DailyEntryFormScreen(
     entryId: String?,
     date: String?,
     onBack: () -> Unit,
+    onNewInteraction: (date: String) -> Unit,
+    onInteractionClick: (interactionId: String) -> Unit,
     viewModel: DailyEntryFormViewModel = hiltViewModel()
 ) {
     val entry by viewModel.entry.collectAsStateWithLifecycle()
-    val allPeople by viewModel.allPeople.collectAsStateWithLifecycle()
     val allPlaces by viewModel.allPlaces.collectAsStateWithLifecycle()
+    val interactions by viewModel.interactionsForDate.collectAsStateWithLifecycle()
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var showPersonPicker by rememberSaveable { mutableStateOf(false) }
     var showPlacePicker by rememberSaveable { mutableStateOf(false) }
     var tagInput by rememberSaveable { mutableStateOf("") }
 
@@ -100,65 +101,66 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 2: People Involved
+            // Section 2: Interactions (read-only, sourced from InteractionRepository by date)
             item {
-                CollapsibleSection("People Involved", initiallyExpanded = true) {
-                    if (entry.interactions.isEmpty()) {
-                        Text("No people added yet.", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                CollapsibleSection("Interactions", initiallyExpanded = true) {
+                    if (interactions.isEmpty()) {
+                        Text(
+                            "No interactions logged for this date.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     } else {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(entry.interactions) { interaction ->
-                                PersonChip(
-                                    person = interaction.person,
-                                    onRemove = { viewModel.removePersonInteraction(interaction.person.id) }
+                            items(interactions) { interaction ->
+                                AssistChip(
+                                    onClick = { onInteractionClick(interaction.id) },
+                                    label = { Text(interaction.person.displayName) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 )
                             }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
                     OutlinedButton(
-                        onClick = { showPersonPicker = true },
+                        onClick = { onNewInteraction(entry.entryDate.toString()) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Add Person")
+                        Text("Log Interaction for this Date")
                     }
                 }
             }
 
-            // Section 3: Per-person interaction blocks
-            items(entry.interactions) { interaction ->
-                CollapsibleSection("Interaction with ${interaction.person.displayName}") {
-                    InteractionBlock(
-                        interaction = interaction,
-                        onUpdate = { viewModel.updateInteraction(it) }
-                    )
-                }
-            }
-
-            // Section 4: My Feelings
+            // Section 3: My Feelings
             item {
                 CollapsibleSection("My Feelings", initiallyExpanded = true) {
                     EmotionSection(entry.emotionData) { viewModel.updateEmotionData(it) }
                 }
             }
 
-            // Section 5: My Thoughts
+            // Section 4: My Thoughts
             item {
                 CollapsibleSection("My Thoughts") {
                     ThoughtSection(entry.thoughtPatternData) { viewModel.updateThoughtData(it) }
                 }
             }
 
-            // Section 6: Body & Life Context
+            // Section 5: Body & Life Context
             item {
                 CollapsibleSection("Body & Life Context") {
                     HealthSection(entry.healthContextData) { viewModel.updateHealthData(it) }
                 }
             }
 
-            // Section 7: Places Visited
+            // Section 6: Places Visited
             item {
                 CollapsibleSection("Places Visited") {
                     if (entry.placesVisited.isNotEmpty()) {
@@ -176,7 +178,7 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 8: Weather
+            // Section 7: Weather
             if (entry.weatherSnapshots.isNotEmpty()) {
                 item {
                     CollapsibleSection("Weather", initiallyExpanded = true) {
@@ -187,7 +189,7 @@ fun DailyEntryFormScreen(
                 }
             }
 
-            // Section 9: Notes & Tags
+            // Section 8: Notes & Tags
             item {
                 CollapsibleSection("Notes & Tags", initiallyExpanded = true) {
                     OutlinedTextField(
@@ -224,14 +226,6 @@ fun DailyEntryFormScreen(
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
-    }
-
-    if (showPersonPicker) {
-        PersonPickerDialog(
-            people = allPeople.filter { p -> entry.interactions.none { it.person.id == p.id } },
-            onSelect = { person -> viewModel.addPersonInteraction(person); showPersonPicker = false },
-            onDismiss = { showPersonPicker = false }
-        )
     }
 
     if (showPlacePicker) {
@@ -349,107 +343,6 @@ private fun HealthSection(health: HealthContextData, onUpdate: (HealthContextDat
     SwitchField("Ate Enough", health.ateEnough) { onUpdate(health.copy(ateEnough = it)) }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun InteractionBlock(interaction: PersonInteraction, onUpdate: (PersonInteraction) -> Unit) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Communication", "In Person", "Interpretation", "Outcome")
-
-    PrimaryScrollableTabRow(selectedTabIndex = selectedTab) {
-        tabs.forEachIndexed { idx, title ->
-            Tab(selected = selectedTab == idx, onClick = { selectedTab = idx }, text = { Text(title) })
-        }
-    }
-
-    Spacer(Modifier.height(8.dp))
-
-    when (selectedTab) {
-        0 -> CommunicationBlock(interaction.communicationData) { onUpdate(interaction.copy(communicationData = it)) }
-        1 -> InPersonBlock(interaction.inPersonData) { onUpdate(interaction.copy(inPersonData = it)) }
-        2 -> RelationshipBlock(interaction.relationshipSignalData) { onUpdate(interaction.copy(relationshipSignalData = it)) }
-        3 -> OutcomeBlock(interaction.outcomeData) { onUpdate(interaction.copy(outcomeData = it)) }
-    }
-
-    OutlinedTextField(
-        value = interaction.notes,
-        onValueChange = { onUpdate(interaction.copy(notes = it)) },
-        label = { Text("Notes about this interaction") },
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        maxLines = 3
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CommunicationBlock(data: CommunicationData, onUpdate: (CommunicationData) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SwitchField("They initiated contact", data.theyInitiatedContact) { onUpdate(data.copy(theyInitiatedContact = it)) }
-        SwitchField("I initiated contact", data.iInitiatedContact) { onUpdate(data.copy(iInitiatedContact = it)) }
-        SwitchField("They replied", data.theyReplied) { onUpdate(data.copy(theyReplied = it)) }
-        SwitchField("Left me on read", data.leftOnRead) { onUpdate(data.copy(leftOnRead = it)) }
-        SwitchField("I was left on read", data.iWasLeftOnRead) { onUpdate(data.copy(iWasLeftOnRead = it)) }
-        SwitchField("Kept conversation going", data.keptConversationGoing) { onUpdate(data.copy(keptConversationGoing = it)) }
-        SwitchField("Conversation ended abruptly", data.conversationEndedAbruptly) { onUpdate(data.copy(conversationEndedAbruptly = it)) }
-        SwitchField("Used emoji", data.usedEmoji) { onUpdate(data.copy(usedEmoji = it)) }
-        SwitchField("Asked a question", data.askedQuestion) { onUpdate(data.copy(askedQuestion = it)) }
-        OutlinedTextField(
-            value = if (data.totalMessageCount == 0) "" else data.totalMessageCount.toString(),
-            onValueChange = { onUpdate(data.copy(totalMessageCount = it.toIntOrNull() ?: 0)) },
-            label = { Text("Total messages") }, modifier = Modifier.fillMaxWidth(), singleLine = true
-        )
-    }
-}
-
-@Composable
-private fun InPersonBlock(data: InPersonData, onUpdate: (InPersonData) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SwitchField("Saw in person", data.sawInPerson) { onUpdate(data.copy(sawInPerson = it)) }
-        SwitchField("Talked in person", data.talkedInPerson) { onUpdate(data.copy(talkedInPerson = it)) }
-        SwitchField("They approached me", data.theyApproachedMe) { onUpdate(data.copy(theyApproachedMe = it)) }
-        SwitchField("I approached them", data.iApproachedThem) { onUpdate(data.copy(iApproachedThem = it)) }
-        SwitchField("Walked together", data.walkedTogether) { onUpdate(data.copy(walkedTogether = it)) }
-        SwitchField("They smiled", data.theySmiled) { onUpdate(data.copy(theySmiled = it)) }
-        SwitchField("They laughed", data.theyLaughed) { onUpdate(data.copy(theyLaughed = it)) }
-        SliderField("Eye contact (0-10)", data.eyeContactLevel) { onUpdate(data.copy(eyeContactLevel = it)) }
-        SliderField("Physical proximity (0-10)", data.physicalProximity) { onUpdate(data.copy(physicalProximity = it)) }
-        SliderField("Felt natural (0-10)", data.feltNatural) { onUpdate(data.copy(feltNatural = it)) }
-        SliderField("Felt awkward (0-10)", data.feltAwkward) { onUpdate(data.copy(feltAwkward = it)) }
-    }
-}
-
-@Composable
-private fun RelationshipBlock(data: RelationshipSignalData, onUpdate: (RelationshipSignalData) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("These are your interpretations, not objective facts.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
-        SliderField("Felt Prioritized", data.feltPrioritized) { onUpdate(data.copy(feltPrioritized = it)) }
-        SliderField("Felt Ignored", data.feltIgnored) { onUpdate(data.copy(feltIgnored = it)) }
-        SliderField("Felt Chosen", data.feltChosen) { onUpdate(data.copy(feltChosen = it)) }
-        SliderField("Felt Optional", data.feltOptional) { onUpdate(data.copy(feltOptional = it)) }
-        SliderField("Felt Safe with Them", data.feltSafeWithThem) { onUpdate(data.copy(feltSafeWithThem = it)) }
-        SliderField("Felt Confused by Them", data.feltConfusedByThem) { onUpdate(data.copy(feltConfusedByThem = it)) }
-        SliderField("Felt They Were Warm", data.feltTheyWereWarm) { onUpdate(data.copy(feltTheyWereWarm = it)) }
-        SliderField("Felt They Were Distant", data.feltTheyWereDistant) { onUpdate(data.copy(feltTheyWereDistant = it)) }
-        SliderField("Felt Mutual Interest", data.feltMutualInterest) { onUpdate(data.copy(feltMutualInterest = it)) }
-        SliderField("Felt Connection Stable", data.feltConnectionStable) { onUpdate(data.copy(feltConnectionStable = it)) }
-    }
-}
-
-@Composable
-private fun OutcomeBlock(data: OutcomeData, onUpdate: (OutcomeData) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SwitchField("Felt better after", data.feltBetterAfter) { onUpdate(data.copy(feltBetterAfter = it)) }
-        SwitchField("Felt worse after", data.feltWorseAfter) { onUpdate(data.copy(feltWorseAfter = it)) }
-        SwitchField("Situation resolved", data.situationResolved) { onUpdate(data.copy(situationResolved = it)) }
-        SwitchField("Talked again later", data.talkedAgainLater) { onUpdate(data.copy(talkedAgainLater = it)) }
-        SwitchField("They followed up", data.theyFollowedUp) { onUpdate(data.copy(theyFollowedUp = it)) }
-        SwitchField("My prediction was correct", data.myPredictionWasCorrect) { onUpdate(data.copy(myPredictionWasCorrect = it)) }
-        SwitchField("Anxiety was a false alarm", data.anxietyWasFalseAlarm) { onUpdate(data.copy(anxietyWasFalseAlarm = it)) }
-        SliderField("Connection improved", data.connectionImproved) { onUpdate(data.copy(connectionImproved = it)) }
-        SliderField("Connection declined", data.connectionDeclined) { onUpdate(data.copy(connectionDeclined = it)) }
-    }
-}
-
 @Composable
 private fun TagInput(
     tags: List<String>, input: String,
@@ -477,28 +370,6 @@ private fun TagInput(
             }
         }
     }
-}
-
-@Composable
-private fun PersonPickerDialog(people: List<Person>, onSelect: (Person) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Person") },
-        text = {
-            if (people.isEmpty()) {
-                Text("All your people are already in this entry. Go to People to add more.")
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    people.forEach { person ->
-                        TextButton(onClick = { onSelect(person) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(person.displayName)
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
 }
 
 @Composable

@@ -1,26 +1,18 @@
 package com.gtnoo.mnemosyne.data.local.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.gtnoo.mnemosyne.domain.model.*
+import java.time.LocalDate
 
 @Entity(
     tableName = "person_interactions",
-    foreignKeys = [
-        ForeignKey(
-            entity = DailyEntryEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["entryId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index("entryId"), Index("personId")]
+    indices = [Index("date"), Index("personId")]
 )
 data class PersonInteractionEntity(
     @PrimaryKey val id: String,
-    val entryId: String,
+    val date: LocalDate,
     val personId: String,
     val mode: String,
     val notes: String,
@@ -86,7 +78,7 @@ data class PersonInteractionEntity(
 ) {
     fun toDomain(person: Person) = PersonInteraction(
         id = id,
-        entryId = entryId,
+        date = date,
         person = person,
         mode = InteractionMode.valueOf(mode),
         notes = notes,
@@ -129,7 +121,7 @@ data class PersonInteractionEntity(
 
     companion object {
         fun fromDomain(interaction: PersonInteraction) = PersonInteractionEntity(
-            id = interaction.id, entryId = interaction.entryId,
+            id = interaction.id, date = interaction.date,
             personId = interaction.person.id, mode = interaction.mode.name, notes = interaction.notes,
             commTheyInitiated = interaction.communicationData.theyInitiatedContact,
             commIInitiated = interaction.communicationData.iInitiatedContact,

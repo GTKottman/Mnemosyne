@@ -16,6 +16,7 @@ import com.gtnoo.mnemosyne.presentation.entry.EntryDetailScreen
 import com.gtnoo.mnemosyne.presentation.history.EntryHistoryScreen
 import com.gtnoo.mnemosyne.presentation.home.HomeScreen
 import com.gtnoo.mnemosyne.presentation.importexport.ImportExportScreen
+import com.gtnoo.mnemosyne.presentation.interaction.InteractionFormScreen
 import com.gtnoo.mnemosyne.presentation.onboarding.OnboardingScreen
 import com.gtnoo.mnemosyne.presentation.people.*
 import com.gtnoo.mnemosyne.presentation.places.*
@@ -77,6 +78,7 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNewEntry = { navController.navigate(Screen.DailyEntryForm.create()) },
+                    onNewInteraction = { navController.navigate(Screen.InteractionForm.create()) },
                     onEntryClick = { navController.navigate(Screen.EntryDetail.create(it)) },
                     onSettings = { navController.navigate(Screen.Settings.route) },
                     onImportExport = { navController.navigate(Screen.ImportExport.route) },
@@ -99,7 +101,28 @@ fun MnemosyneNavGraph(startDestination: String = Screen.Home.route) {
             ) { backStackEntry ->
                 val entryId = backStackEntry.arguments?.getString("entryId")?.takeIf { it.isNotBlank() }
                 val date = backStackEntry.arguments?.getString("date")?.takeIf { it.isNotBlank() }
-                DailyEntryFormScreen(entryId = entryId, date = date, onBack = { navController.popBackStack() })
+                DailyEntryFormScreen(
+                    entryId = entryId,
+                    date = date,
+                    onBack = { navController.popBackStack() },
+                    onNewInteraction = { d -> navController.navigate(Screen.InteractionForm.create(date = d)) },
+                    onInteractionClick = { id -> navController.navigate(Screen.InteractionForm.create(interactionId = id)) }
+                )
+            }
+            composable(
+                route = Screen.InteractionForm.route,
+                arguments = listOf(
+                    navArgument("interactionId") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("date") { type = NavType.StringType; defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                val interactionId = backStackEntry.arguments?.getString("interactionId")?.takeIf { it.isNotBlank() }
+                val date = backStackEntry.arguments?.getString("date")?.takeIf { it.isNotBlank() }
+                InteractionFormScreen(
+                    interactionId = interactionId,
+                    initialDate = date,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.EntryDetail.route) { backStackEntry ->
                 val entryId = backStackEntry.arguments?.getString("entryId") ?: return@composable

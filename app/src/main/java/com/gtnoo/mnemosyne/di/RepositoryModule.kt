@@ -31,6 +31,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindInteractionRepository(impl: InteractionRepositoryImpl): InteractionRepository
+
+    @Binds
+    @Singleton
     abstract fun bindEntryRepository(impl: EntryRepositoryImpl): EntryRepository
 
     @Binds

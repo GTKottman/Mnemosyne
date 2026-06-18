@@ -1,10 +1,10 @@
 package com.gtnoo.mnemosyne.data.repository
 
 import com.gtnoo.mnemosyne.data.local.dao.DailyEntryDao
-import com.gtnoo.mnemosyne.data.local.dao.PersonDao
 import com.gtnoo.mnemosyne.data.local.entity.*
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.EntryRepository
+import com.gtnoo.mnemosyne.domain.repository.InteractionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 class EntryRepositoryImpl @Inject constructor(
     private val entryDao: DailyEntryDao,
-    private val personDao: PersonDao
+    private val interactionRepository: InteractionRepository
 ) : EntryRepository {
 
     override fun observeAll(): Flow<List<DailyEntry>> =
@@ -30,8 +30,11 @@ class EntryRepositoryImpl @Inject constructor(
     override suspend fun getBetweenDates(start: LocalDate, end: LocalDate): List<DailyEntry> =
         entryDao.getBetweenDates(start, end).map { hydrate(it) }
 
-    override suspend fun getByPersonId(personId: String): List<DailyEntry> =
-        entryDao.getByPersonId(personId).map { hydrate(it) }
+    override suspend fun getByPersonId(personId: String): List<DailyEntry> {
+        val dates = interactionRepository.getByPersonId(personId).map { it.date }.distinct()
+        return dates.flatMap { date -> entryDao.getByDate(date).map { hydrate(it) } }
+            .sortedByDescending { it.entryDate }
+    }
 
     override suspend fun getByPlaceId(placeId: String): List<DailyEntry> =
         entryDao.getByPlaceId(placeId).map { hydrate(it) }
@@ -55,11 +58,6 @@ class EntryRepositoryImpl @Inject constructor(
     private suspend fun persist(entry: DailyEntry) {
         entryDao.insert(DailyEntryEntity.fromDomain(entry))
 
-        entryDao.deleteInteractionsForEntry(entry.id)
-        entry.interactions.forEach { interaction ->
-            entryDao.insertInteraction(PersonInteractionEntity.fromDomain(interaction))
-        }
-
         entryDao.deleteEntryPlaces(entry.id)
         entry.placesVisited.forEach { place ->
             entryDao.insertEntryPlace(EntryPlaceCrossRef(entry.id, place.id))
@@ -72,11 +70,7 @@ class EntryRepositoryImpl @Inject constructor(
     }
 
     private suspend fun hydrate(entity: DailyEntryEntity): DailyEntry {
-        val interactionEntities = entryDao.getInteractionsForEntry(entity.id)
-        val interactions = interactionEntities.mapNotNull { intEntity ->
-            val person = personDao.getById(intEntity.personId)?.toDomain() ?: return@mapNotNull null
-            intEntity.toDomain(person)
-        }
+        val interactions = interactionRepository.getByDate(entity.entryDate)
         val places = entryDao.getPlacesForEntry(entity.id).map { it.toDomain() }
         val weather = entryDao.getWeatherForEntry(entity.id).map { it.toDomain() }
         return entity.toDomain(interactions, places, weather)

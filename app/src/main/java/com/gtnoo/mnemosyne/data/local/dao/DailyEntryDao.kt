@@ -27,14 +27,6 @@ interface DailyEntryDao {
 
     @Query("""
         SELECT DISTINCT de.* FROM daily_entries de
-        INNER JOIN person_interactions pi ON pi.entryId = de.id
-        WHERE pi.personId = :personId
-        ORDER BY de.entryDate DESC
-    """)
-    suspend fun getByPersonId(personId: String): List<DailyEntryEntity>
-
-    @Query("""
-        SELECT DISTINCT de.* FROM daily_entries de
         INNER JOIN entry_places ep ON ep.entryId = de.id
         WHERE ep.placeId = :placeId
         ORDER BY de.entryDate DESC
@@ -49,16 +41,6 @@ interface DailyEntryDao {
 
     @Query("DELETE FROM daily_entries WHERE id = :id")
     suspend fun deleteById(id: String)
-
-    // Person interactions
-    @Query("SELECT * FROM person_interactions WHERE entryId = :entryId")
-    suspend fun getInteractionsForEntry(entryId: String): List<PersonInteractionEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertInteraction(entity: PersonInteractionEntity)
-
-    @Query("DELETE FROM person_interactions WHERE entryId = :entryId")
-    suspend fun deleteInteractionsForEntry(entryId: String)
 
     // Entry-place cross refs
     @Insert(onConflict = OnConflictStrategy.REPLACE)
