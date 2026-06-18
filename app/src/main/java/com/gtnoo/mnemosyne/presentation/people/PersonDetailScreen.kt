@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gtnoo.mnemosyne.domain.model.*
 import com.gtnoo.mnemosyne.domain.repository.PersonRepository
+import com.gtnoo.mnemosyne.domain.repository.PlaceRepository
 import com.gtnoo.mnemosyne.domain.service.PersonService
 import com.gtnoo.mnemosyne.ui.components.SectionLabel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,10 +29,14 @@ import javax.inject.Inject
 @HiltViewModel
 class PersonDetailViewModel @Inject constructor(
     private val personRepository: PersonRepository,
-    private val personService: PersonService
+    private val personService: PersonService,
+    private val placeRepository: PlaceRepository
 ) : ViewModel() {
     private val _person = MutableStateFlow<Person?>(null)
     val person: StateFlow<Person?> = _person.asStateFlow()
+
+    private val _linkedPlace = MutableStateFlow<SavedPlace?>(null)
+    val linkedPlace: StateFlow<SavedPlace?> = _linkedPlace.asStateFlow()
 
     private val _summary = MutableStateFlow<PersonSummary?>(null)
     val summary: StateFlow<PersonSummary?> = _summary.asStateFlow()
@@ -40,6 +45,7 @@ class PersonDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val p = personRepository.getById(personId) ?: return@launch
             _person.value = p
+            _linkedPlace.value = p.usualPlaceId?.let { placeRepository.getById(it) }
             val range = DateRange.lastThreeMonths()
             _summary.value = personService.getSummaryForPerson(p, range)
         }
@@ -66,6 +72,7 @@ fun PersonDetailScreen(
     viewModel: PersonDetailViewModel = hiltViewModel()
 ) {
     val person by viewModel.person.collectAsStateWithLifecycle()
+    val linkedPlace by viewModel.linkedPlace.collectAsStateWithLifecycle()
     val summary by viewModel.summary.collectAsStateWithLifecycle()
 
     LaunchedEffect(personId) { viewModel.load(personId) }
@@ -126,6 +133,31 @@ fun PersonDetailScreen(
                             if (p.notes.isNotBlank()) {
                                 Text(p.notes, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            linkedPlace?.let { place ->
+                                if (place.latitude != null && place.longitude != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.PinDrop,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            text = when {
+                                                place.city.isNotBlank() && place.state.isNotBlank() ->
+                                                    "${place.city}, ${place.state}"
+                                                place.city.isNotBlank() -> place.city
+                                                else -> "Location pinned"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
                             }
                             Text("Added ${p.addedOn.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}",
                                 style = MaterialTheme.typography.labelSmall,

@@ -13,7 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gtnoo.mnemosyne.domain.model.RelationshipType
+import com.gtnoo.mnemosyne.ui.components.LocationPickerDialog
 import com.gtnoo.mnemosyne.ui.components.SwitchField
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +29,17 @@ fun AddEditPersonScreen(
     val relationshipType by viewModel.relationshipType.collectAsStateWithLifecycle()
     val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
+    val latStr by viewModel.latStr.collectAsStateWithLifecycle()
+    val lngStr by viewModel.lngStr.collectAsStateWithLifecycle()
+    val city by viewModel.city.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var showTypeDropdown by rememberSaveable { mutableStateOf(false) }
+    var showMapPicker by remember { mutableStateOf(false) }
+    var mapInitialLat by remember { mutableStateOf<Double?>(null) }
+    var mapInitialLng by remember { mutableStateOf<Double?>(null) }
+    val scope = rememberCoroutineScope()
+
+    val hasCoords = latStr.toDoubleOrNull() != null && lngStr.toDoubleOrNull() != null
 
     LaunchedEffect(personId) {
         if (!personId.isNullOrBlank()) viewModel.loadPerson(personId)
@@ -105,6 +117,52 @@ fun AddEditPersonScreen(
                 onCheckedChange = { viewModel.updateIsFavorite(it) }
             )
 
+            Text(
+                "Location (for weather)",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            OutlinedButton(
+                onClick = {
+                    mapInitialLat = latStr.toDoubleOrNull()
+                    mapInitialLng = lngStr.toDoubleOrNull()
+                    showMapPicker = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PinDrop, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (hasCoords) "Change pinned location" else "Pin on map")
+            }
+            if (hasCoords) {
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Location pinned") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(AssistChipDefaults.IconSize)
+                        )
+                    }
+                )
+                val locationLabel = when {
+                    city.isNotBlank() && state.isNotBlank() -> "$city, $state"
+                    city.isNotBlank() -> city
+                    else -> null
+                }
+                if (locationLabel != null) {
+                    Text(
+                        locationLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = { viewModel.clearLocation() }) {
+                    Text("Remove location")
+                }
+            }
+
             OutlinedTextField(
                 value = notes,
                 onValueChange = { viewModel.updateNotes(it) },
@@ -116,8 +174,7 @@ fun AddEditPersonScreen(
             Button(
                 onClick = {
                     viewModel.savePerson(
-                        id = if (personId.isNullOrBlank()) null else personId,
-                        usualPlaceId = null
+                        id = if (personId.isNullOrBlank()) null else personId
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -128,5 +185,23 @@ fun AddEditPersonScreen(
                 Text("Save Person")
             }
         }
+    }
+
+    if (showMapPicker) {
+        LocationPickerDialog(
+            initialLat = mapInitialLat,
+            initialLng = mapInitialLng,
+            cityHint = city,
+            onConfirm = { lat, lng ->
+                viewModel.updateLatLng(lat, lng)
+                scope.launch {
+                    viewModel.reverseGeocode(lat, lng)?.let { (c, s) ->
+                        viewModel.applyReverseGeocode(c, s)
+                    }
+                }
+                showMapPicker = false
+            },
+            onDismiss = { showMapPicker = false }
+        )
     }
 }
