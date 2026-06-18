@@ -64,9 +64,11 @@ fun PersonAnalyticsScreen(
     LaunchedEffect(personId) { viewModel.load(personId) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Analytics: ${person?.displayName ?: ""}") },
+                windowInsets = WindowInsets(0),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
                 },

@@ -53,6 +53,10 @@ class DailyEntryFormViewModel @Inject constructor(
         _entry.value = DailyEntry(entryDate = date)
     }
 
+    fun updateDate(date: LocalDate) {
+        _entry.update { it.copy(entryDate = date) }
+    }
+
     fun updateContext(context: EntryContext) {
         _entry.update { it.copy(context = context) }
     }

@@ -24,6 +24,7 @@ data class DailyEntryEntity(
     val contextWorkDay: Boolean,
     val contextWeekend: Boolean,
     val contextHoliday: Boolean,
+    val contextVacation: Boolean,
 
     // EmotionData
     val emotionHopeful: Int,
@@ -81,7 +82,8 @@ data class DailyEntryEntity(
             schoolDay = contextSchoolDay,
             workDay = contextWorkDay,
             weekend = contextWeekend,
-            holiday = contextHoliday
+            holiday = contextHoliday,
+            vacation = contextVacation
         ),
         emotionData = EmotionData(
             hopeful = emotionHopeful, anxious = emotionAnxious, sad = emotionSad,
@@ -122,6 +124,7 @@ data class DailyEntryEntity(
             contextWorkDay = entry.context.workDay,
             contextWeekend = entry.context.weekend,
             contextHoliday = entry.context.holiday,
+            contextVacation = entry.context.vacation,
             emotionHopeful = entry.emotionData.hopeful, emotionAnxious = entry.emotionData.anxious,
             emotionSad = entry.emotionData.sad, emotionHappy = entry.emotionData.happy,
             emotionCalm = entry.emotionData.calm, emotionLonely = entry.emotionData.lonely,

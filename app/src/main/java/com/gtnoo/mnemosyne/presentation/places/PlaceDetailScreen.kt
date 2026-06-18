@@ -67,9 +67,11 @@ fun PlaceDetailScreen(
     LaunchedEffect(placeId) { viewModel.load(placeId) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text(place?.label ?: "Place") },
+                windowInsets = WindowInsets(0),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
                 },

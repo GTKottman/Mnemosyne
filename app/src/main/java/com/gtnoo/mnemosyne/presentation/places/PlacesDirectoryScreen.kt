@@ -26,9 +26,11 @@ fun PlacesDirectoryScreen(
     var showDeleteDialog by remember { mutableStateOf<SavedPlace?>(null) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Places") },
+                windowInsets = WindowInsets(0),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )

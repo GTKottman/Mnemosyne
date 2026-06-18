@@ -5,5 +5,6 @@ data class EntryContext(
     val schoolDay: Boolean = false,
     val workDay: Boolean = false,
     val weekend: Boolean = false,
-    val holiday: Boolean = false
+    val holiday: Boolean = false,
+    val vacation: Boolean = false
 )

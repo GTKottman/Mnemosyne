@@ -32,9 +32,11 @@ fun EntryHistoryScreen(
     var showFilters by remember { mutableStateOf(false) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Journal") },
+                windowInsets = WindowInsets(0),
                 actions = {
                     IconButton(onClick = { showFilters = !showFilters }) {
                         Icon(

@@ -30,11 +30,7 @@ enum class InteractionMode(val label: String) {
 }
 
 enum class EntryType(val label: String) {
-    DAILY_SUMMARY("Daily Summary"),
-    INTERACTION_LOG("Interaction Log"),
-    EMOTIONAL_SPIKE("Emotional Spike"),
-    MEMORY("Memory"),
-    RETROSPECTIVE_EDIT("Retrospective Edit")
+    DAILY_SUMMARY("Daily Summary")
 }
 
 enum class WeatherCondition(val label: String) {

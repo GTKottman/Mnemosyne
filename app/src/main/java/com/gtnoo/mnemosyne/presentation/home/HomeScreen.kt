@@ -37,6 +37,7 @@ fun HomeScreen(
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNewEntry,

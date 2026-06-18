@@ -1,5 +1,7 @@
 package com.gtnoo.mnemosyne.presentation.onboarding
 
+import android.Manifest
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,14 +11,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.gtnoo.mnemosyne.domain.model.RelationshipType
 import com.gtnoo.mnemosyne.ui.components.LocationPickerDialog
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +46,8 @@ fun OnboardingScreen(
     var homePlaceState by remember { mutableStateOf("") }
     var pickedLat by remember { mutableStateOf<Double?>(null) }
     var pickedLng by remember { mutableStateOf<Double?>(null) }
+    var detectedLocation by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     // First person fields
     var personName by remember { mutableStateOf("") }
@@ -46,14 +59,27 @@ fun OnboardingScreen(
     when (step) {
         0 -> WelcomeStep(onNext = { step = 1 }, onSkip = { viewModel.skipOnboarding() })
         1 -> HomePlaceStep(
-            label = homePlaceLabel, city = homePlaceCity, state = homePlaceState,
+            label = homePlaceLabel,
+            detectedLocation = detectedLocation,
             pickedLat = pickedLat, pickedLng = pickedLng,
-            onLabelChange = { homePlaceLabel = it }, onCityChange = { homePlaceCity = it },
-            onStateChange = { homePlaceState = it },
-            onLocationPicked = { lat, lng -> pickedLat = lat; pickedLng = lng },
+            onLabelChange = { homePlaceLabel = it },
+            onLocationPicked = { lat, lng ->
+                pickedLat = lat
+                pickedLng = lng
+                scope.launch {
+                    val result = viewModel.reverseGeocode(lat, lng)
+                    if (result != null) {
+                        homePlaceCity = result.first
+                        homePlaceState = result.second
+                        detectedLocation = if (result.second.isNotBlank())
+                            "${result.first}, ${result.second}"
+                        else
+                            result.first
+                    }
+                }
+            },
             onNext = { step = 2 },
-            onBack = { step = 0 },
-            geocodeCity = { city -> viewModel.geocodeCity(city) }
+            onBack = { step = 0 }
         )
         2 -> FirstPersonStep(
             personName = personName, personType = personType,
@@ -110,21 +136,48 @@ private fun WelcomeStep(onNext: () -> Unit, onSkip: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("MissingPermission")
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 private fun HomePlaceStep(
-    label: String, city: String, state: String,
+    label: String,
+    detectedLocation: String?,
     pickedLat: Double?, pickedLng: Double?,
-    onLabelChange: (String) -> Unit, onCityChange: (String) -> Unit,
-    onStateChange: (String) -> Unit,
+    onLabelChange: (String) -> Unit,
     onLocationPicked: (Double, Double) -> Unit,
-    onNext: () -> Unit, onBack: () -> Unit,
-    geocodeCity: suspend (String) -> Pair<Double, Double>?
+    onNext: () -> Unit, onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var showMapPicker by remember { mutableStateOf(false) }
-    var mapInitialLat by remember { mutableStateOf<Double?>(null) }
-    var mapInitialLng by remember { mutableStateOf<Double?>(null) }
+    var isFetchingGps by remember { mutableStateOf(false) }
+    var gpsError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+
+    // After permission is granted via dialog, immediately fetch location
+    var pendingGpsFetch by remember { mutableStateOf(false) }
+    LaunchedEffect(locationPermission.status.isGranted, pendingGpsFetch) {
+        if (pendingGpsFetch && locationPermission.status.isGranted) {
+            pendingGpsFetch = false
+            isFetchingGps = true
+            gpsError = null
+            try {
+                val client = LocationServices.getFusedLocationProviderClient(context)
+                val cts = CancellationTokenSource()
+                val loc = client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token).await()
+                if (loc != null) {
+                    onLocationPicked(loc.latitude, loc.longitude)
+                } else {
+                    gpsError = "Could not get location. Try pinning on the map instead."
+                }
+            } catch (e: Exception) {
+                gpsError = "Location unavailable. Try pinning on the map instead."
+            } finally {
+                isFetchingGps = false
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
@@ -134,32 +187,78 @@ private fun HomePlaceStep(
         Icon(Icons.Default.Home, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
         Text("Where are you based?", style = MaterialTheme.typography.headlineSmall)
-        Text("This lets Mnemosyne capture weather for your location automatically.",
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "This lets Mnemosyne capture weather for your location automatically.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-        OutlinedTextField(value = label, onValueChange = onLabelChange,
-            label = { Text("Place name (e.g. Home)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = city, onValueChange = onCityChange,
-                label = { Text("City") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(value = state, onValueChange = onStateChange,
-                label = { Text("State") }, modifier = Modifier.weight(0.6f), singleLine = true)
-        }
+        OutlinedTextField(
+            value = label,
+            onValueChange = onLabelChange,
+            label = { Text("Place name (e.g. Home)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
 
-        // Map pin button
-        OutlinedButton(
+        Spacer(Modifier.height(4.dp))
+
+        // GPS button
+        Button(
             onClick = {
-                scope.launch {
-                    mapInitialLat = pickedLat
-                    mapInitialLng = pickedLng
-                    if (mapInitialLat == null && city.isNotBlank()) {
-                        val coords = geocodeCity(city)
-                        mapInitialLat = coords?.first
-                        mapInitialLng = coords?.second
+                gpsError = null
+                when {
+                    locationPermission.status.isGranted -> {
+                        scope.launch {
+                            isFetchingGps = true
+                            try {
+                                val client = LocationServices.getFusedLocationProviderClient(context)
+                                val cts = CancellationTokenSource()
+                                val loc = client.getCurrentLocation(
+                                    Priority.PRIORITY_HIGH_ACCURACY, cts.token
+                                ).await()
+                                if (loc != null) {
+                                    onLocationPicked(loc.latitude, loc.longitude)
+                                } else {
+                                    gpsError = "Could not get location. Try pinning on the map instead."
+                                }
+                            } catch (e: Exception) {
+                                gpsError = "Location unavailable. Try pinning on the map instead."
+                            } finally {
+                                isFetchingGps = false
+                            }
+                        }
                     }
-                    showMapPicker = true
+                    locationPermission.status.shouldShowRationale -> {
+                        pendingGpsFetch = true
+                        locationPermission.launchPermissionRequest()
+                    }
+                    else -> {
+                        pendingGpsFetch = true
+                        locationPermission.launchPermissionRequest()
+                    }
                 }
             },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isFetchingGps
+        ) {
+            if (isFetchingGps) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Getting location...")
+            } else {
+                Icon(Icons.Default.MyLocation, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Use current location")
+            }
+        }
+
+        OutlinedButton(
+            onClick = { showMapPicker = true },
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.PinDrop, contentDescription = null)
@@ -167,13 +266,24 @@ private fun HomePlaceStep(
             Text(if (pickedLat != null) "Change pinned location" else "Pin on map")
         }
 
-        if (pickedLat != null && pickedLng != null) {
+        if (gpsError != null) {
+            Text(
+                text = gpsError!!,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        if (detectedLocation != null) {
             AssistChip(
                 onClick = {},
-                label = { Text("Location pinned") },
+                label = { Text(detectedLocation) },
                 leadingIcon = {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null,
-                        modifier = Modifier.size(AssistChipDefaults.IconSize))
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(AssistChipDefaults.IconSize)
+                    )
                 }
             )
         }
@@ -187,9 +297,9 @@ private fun HomePlaceStep(
 
     if (showMapPicker) {
         LocationPickerDialog(
-            initialLat = mapInitialLat,
-            initialLng = mapInitialLng,
-            cityHint = city,
+            initialLat = pickedLat,
+            initialLng = pickedLng,
+            cityHint = detectedLocation ?: "",
             onConfirm = { lat, lng ->
                 onLocationPicked(lat, lng)
                 showMapPicker = false

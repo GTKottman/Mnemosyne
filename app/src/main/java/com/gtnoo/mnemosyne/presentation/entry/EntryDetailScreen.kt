@@ -47,9 +47,11 @@ fun EntryDetailScreen(
     LaunchedEffect(entryId) { viewModel.loadEntry(entryId) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Entry Detail") },
+                windowInsets = WindowInsets(0),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
                 },
@@ -82,8 +84,6 @@ fun EntryDetailScreen(
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(e.entryDate.toString(), style = MaterialTheme.typography.headlineSmall)
-                            Text(e.context.entryType.label, style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer)
                             if (e.tags.isNotEmpty()) {
                                 Text(e.tags.joinToString(", ") { "#$it" },
                                     style = MaterialTheme.typography.bodySmall)

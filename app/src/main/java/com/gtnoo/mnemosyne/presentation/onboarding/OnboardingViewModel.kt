@@ -65,6 +65,9 @@ class OnboardingViewModel @Inject constructor(
     suspend fun geocodeCity(city: String): Pair<Double, Double>? =
         geocodingClient.geocode(city)
 
+    suspend fun reverseGeocode(lat: Double, lng: Double): Pair<String, String>? =
+        geocodingClient.reverseGeocode(lat, lng)
+
     fun skipOnboarding() {
         viewModelScope.launch {
             val settings = settingsRepository.getSettings()

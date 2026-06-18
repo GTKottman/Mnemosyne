@@ -188,11 +188,7 @@ fun EntryCard(
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(entry.entryDate.toString(), style = MaterialTheme.typography.titleSmall)
-                Text(entry.context.entryType.label, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary)
-            }
+            Text(entry.entryDate.toString(), style = MaterialTheme.typography.titleSmall)
             if (entry.interactions.isNotEmpty()) {
                 Text(
                     entry.interactions.joinToString(", ") { it.person.displayName },

@@ -91,5 +91,9 @@ dependencies {
     // Permissions
     implementation(libs.accompanist.permissions)
 
+    // Location
+    implementation(libs.play.services.location)
+    implementation(libs.kotlinx.coroutines.play.services)
+
     debugImplementation(libs.androidx.ui.tooling)
 }

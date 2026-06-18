@@ -58,10 +58,12 @@ fun DailyEntryFormScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (entryId.isNullOrBlank()) "New Entry" else "Edit Entry") },
+                windowInsets = WindowInsets(0),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
@@ -89,8 +91,12 @@ fun DailyEntryFormScreen(
             // Section 1: Date & Context
             item {
                 CollapsibleSection("Date & Context", initiallyExpanded = true) {
-                    Text(entry.entryDate.toString(), style = MaterialTheme.typography.bodyMedium)
-                    ContextSection(entry.context) { viewModel.updateContext(it) }
+                    ContextSection(
+                        entryDate = entry.entryDate,
+                        context = entry.context,
+                        onDateUpdate = { viewModel.updateDate(it) },
+                        onContextUpdate = { viewModel.updateContext(it) }
+                    )
                 }
             }
 
@@ -239,27 +245,54 @@ fun DailyEntryFormScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ContextSection(context: EntryContext, onUpdate: (EntryContext) -> Unit) {
-    var showTypeDropdown by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = showTypeDropdown, onExpandedChange = { showTypeDropdown = it }) {
-        OutlinedTextField(
-            value = context.entryType.label, onValueChange = {}, readOnly = true,
-            label = { Text("Entry Type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showTypeDropdown) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
-        )
-        ExposedDropdownMenu(expanded = showTypeDropdown, onDismissRequest = { showTypeDropdown = false }) {
-            EntryType.entries.forEach { type ->
-                DropdownMenuItem(text = { Text(type.label) }, onClick = {
-                    onUpdate(context.copy(entryType = type)); showTypeDropdown = false
-                })
+private fun ContextSection(
+    entryDate: LocalDate,
+    context: EntryContext,
+    onDateUpdate: (LocalDate) -> Unit,
+    onContextUpdate: (EntryContext) -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = entryDate.toEpochDay() * 86_400_000L
+    )
+
+    OutlinedTextField(
+        value = entryDate.toString(),
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Date") },
+        trailingIcon = {
+            IconButton(onClick = { showDatePicker = true }) {
+                Icon(Icons.Default.CalendarToday, contentDescription = "Pick date")
             }
+        },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        onDateUpdate(LocalDate.ofEpochDay(millis / 86_400_000L))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
-    SwitchField("School Day", context.schoolDay) { onUpdate(context.copy(schoolDay = it)) }
-    SwitchField("Work Day", context.workDay) { onUpdate(context.copy(workDay = it)) }
-    SwitchField("Weekend", context.weekend) { onUpdate(context.copy(weekend = it)) }
-    SwitchField("Holiday", context.holiday) { onUpdate(context.copy(holiday = it)) }
+
+    SwitchField("School Day", context.schoolDay) { onContextUpdate(context.copy(schoolDay = it)) }
+    SwitchField("Work Day", context.workDay) { onContextUpdate(context.copy(workDay = it)) }
+    SwitchField("Weekend", context.weekend) { onContextUpdate(context.copy(weekend = it)) }
+    SwitchField("Holiday", context.holiday) { onContextUpdate(context.copy(holiday = it)) }
+    SwitchField("Vacation", context.vacation) { onContextUpdate(context.copy(vacation = it)) }
 }
 
 @Composable

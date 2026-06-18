@@ -89,9 +89,11 @@ fun SimilarityResultsScreen(
     LaunchedEffect(entryId) { viewModel.load(entryId) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Similar Entries") },
+                windowInsets = WindowInsets(0),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
                 },

@@ -19,6 +19,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MnemosyneDatabase =
         Room.databaseBuilder(context, MnemosyneDatabase::class.java, "mnemosyne.db")
+            .addMigrations(MnemosyneDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
 

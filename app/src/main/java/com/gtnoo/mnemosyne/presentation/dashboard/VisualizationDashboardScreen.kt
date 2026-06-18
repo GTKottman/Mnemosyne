@@ -35,9 +35,11 @@ fun VisualizationDashboardScreen(
     val ranges = listOf("30 days" to DateRange.lastMonth(), "90 days" to DateRange.lastThreeMonths(), "1 year" to DateRange.lastYear())
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Dashboard") },
+                windowInsets = WindowInsets(0),
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             )
         }
