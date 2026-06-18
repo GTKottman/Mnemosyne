@@ -170,7 +170,8 @@ fun MnemosyneNavGraph(
                     entryId = entryId,
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(Screen.DailyEntryForm.create(entryId = it)) },
-                    onSimilarity = { navController.navigate(Screen.SimilarityResults.create(it)) }
+                    onSimilarity = { navController.navigate(Screen.SimilarityResults.create(it)) },
+                    onNavigateTo = { navController.navigate(Screen.EntryDetail.create(it)) }
                 )
             }
             composable(
