@@ -3,6 +3,7 @@ package com.gtnoo.mnemosyne.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,9 +14,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.gtnoo.mnemosyne.domain.model.*
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun CollapsibleSection(
@@ -326,4 +338,167 @@ fun NumberInputField(
         singleLine = true,
         modifier = modifier
     )
+}
+
+/**
+ * Read-only display row that mirrors the visual language of SliderField.
+ * Pass [leftLabel] and [rightLabel] for bipolar axes; pass [label] alone for single-label fields.
+ */
+@Composable
+fun StatValueRow(
+    value: Int,
+    modifier: Modifier = Modifier,
+    label: String = "",
+    leftLabel: String? = null,
+    rightLabel: String? = null
+) {
+    if (leftLabel != null && rightLabel != null) {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                leftLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                rightLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.End
+            )
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+/**
+ * Generic radar / web chart drawn entirely with Compose Canvas.
+ * [data] is a list of (label, value) pairs; values are expected on a 0–[maxValue] scale.
+ * Requires at least 3 spokes.
+ */
+@Composable
+fun RadarChart(
+    data: List<Pair<String, Int>>,
+    modifier: Modifier = Modifier,
+    maxValue: Int = 10
+) {
+    val n = data.size
+    if (n < 3) return
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.outline
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(fontSize = 9.sp, color = onSurface)
+    // Pre-measure labels outside the draw lambda so layout is consistent each frame
+    val measuredLabels = remember(data, labelStyle) {
+        data.map { (label, _) -> textMeasurer.measure(label, labelStyle) }
+    }
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+    ) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val labelMargin = 44.dp.toPx()
+        val chartRadius = (size.minDimension / 2f) - labelMargin
+
+        val angles = List(n) { i -> -PI / 2.0 + i * 2.0 * PI / n }
+
+        // Concentric grid rings at 2, 4, 6, 8, 10
+        for (ring in 1..5) {
+            val fraction = (ring * 2f) / maxValue.toFloat()
+            val ringPath = Path()
+            angles.forEachIndexed { i, angle ->
+                val px = cx + (chartRadius * fraction * cos(angle)).toFloat()
+                val py = cy + (chartRadius * fraction * sin(angle)).toFloat()
+                if (i == 0) ringPath.moveTo(px, py) else ringPath.lineTo(px, py)
+            }
+            ringPath.close()
+            drawPath(
+                path = ringPath,
+                color = gridColor.copy(alpha = if (ring == 5) 0.45f else 0.2f),
+                style = Stroke(width = if (ring == 5) 1.5f else 0.8f)
+            )
+        }
+
+        // Spoke lines from center to outermost ring
+        angles.forEach { angle ->
+            drawLine(
+                color = gridColor.copy(alpha = 0.3f),
+                start = Offset(cx, cy),
+                end = Offset(
+                    (cx + chartRadius * cos(angle)).toFloat(),
+                    (cy + chartRadius * sin(angle)).toFloat()
+                ),
+                strokeWidth = 0.8f
+            )
+        }
+
+        // Filled data polygon
+        val dataPath = Path()
+        data.forEachIndexed { i, (_, value) ->
+            val fraction = value.coerceIn(0, maxValue).toFloat() / maxValue.toFloat()
+            val px = cx + (chartRadius * fraction * cos(angles[i])).toFloat()
+            val py = cy + (chartRadius * fraction * sin(angles[i])).toFloat()
+            if (i == 0) dataPath.moveTo(px, py) else dataPath.lineTo(px, py)
+        }
+        dataPath.close()
+        drawPath(dataPath, color = primaryColor.copy(alpha = 0.22f))
+        drawPath(dataPath, color = primaryColor.copy(alpha = 0.8f), style = Stroke(width = 2.dp.toPx()))
+
+        // Dot at each data point
+        data.forEachIndexed { i, (_, value) ->
+            val fraction = value.coerceIn(0, maxValue).toFloat() / maxValue.toFloat()
+            val px = cx + (chartRadius * fraction * cos(angles[i])).toFloat()
+            val py = cy + (chartRadius * fraction * sin(angles[i])).toFloat()
+            drawCircle(color = primaryColor, radius = 3.5f, center = Offset(px, py))
+        }
+
+        // Labels just outside the outermost ring
+        val labelRadius = chartRadius + 28.dp.toPx()
+        measuredLabels.forEachIndexed { i, layout ->
+            val lx = (cx + labelRadius * cos(angles[i])).toFloat()
+            val ly = (cy + labelRadius * sin(angles[i])).toFloat()
+            drawText(
+                textLayoutResult = layout,
+                topLeft = Offset(
+                    x = lx - layout.size.width / 2f,
+                    y = ly - layout.size.height / 2f
+                )
+            )
+        }
+    }
 }
