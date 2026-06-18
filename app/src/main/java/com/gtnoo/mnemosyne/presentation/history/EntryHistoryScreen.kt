@@ -97,6 +97,68 @@ fun EntryHistoryScreen(
 }
 
 @Composable
+fun EntryHistoryContent(
+    modifier: Modifier = Modifier,
+    onEntryClick: (String) -> Unit,
+    viewModel: EntryHistoryViewModel = hiltViewModel()
+) {
+    val filteredEntries by viewModel.filteredEntries.collectAsStateWithLifecycle()
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
+    var showFilters by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = { showFilters = !showFilters }) {
+                Icon(
+                    if (showFilters) Icons.Default.FilterAltOff else Icons.Default.FilterAlt,
+                    contentDescription = "Filters"
+                )
+            }
+        }
+        if (showFilters) {
+            FilterPanel(
+                filter = filter,
+                onFilterChange = { viewModel.updateFilter(it) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            HorizontalDivider()
+        }
+        if (filteredEntries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.EventNote, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(56.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text("No entries found", style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Tap + to add your first entry", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            val grouped = filteredEntries.groupBy { it.entryDate }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                grouped.entries.sortedByDescending { it.key }.forEach { (date, entries) ->
+                    item {
+                        SectionLabel(date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)))
+                    }
+                    items(entries, key = { it.id }) { entry ->
+                        EntryCard(entry = entry, onClick = { onEntryClick(entry.id) })
+                    }
+                }
+                item { Spacer(Modifier.height(80.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FilterPanel(
     filter: FilterCriteria,
     onFilterChange: (FilterCriteria) -> Unit,

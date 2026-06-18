@@ -18,7 +18,6 @@ sealed class Screen(val route: String) {
 
     object EntryHistory : Screen("history")
 
-    object PeopleDirectory : Screen("people")
     object AddEditPerson : Screen("people/edit?personId={personId}") {
         fun create(personId: String? = null) = "people/edit?personId=${personId ?: ""}"
     }
@@ -29,7 +28,6 @@ sealed class Screen(val route: String) {
         fun create(personId: String) = "people/analytics/$personId"
     }
 
-    object PlacesDirectory : Screen("places")
     object AddEditPlace : Screen("places/edit?placeId={placeId}") {
         fun create(placeId: String? = null) = "places/edit?placeId=${placeId ?: ""}"
     }
@@ -54,7 +52,6 @@ sealed class Screen(val route: String) {
     object ImportExport : Screen("importexport")
     object Settings : Screen("settings")
 
-    object MedicineList : Screen("medicines")
     object AddEditMedicine : Screen("medicines/edit?medicineId={medicineId}") {
         fun create(medicineId: String? = null) = "medicines/edit?medicineId=${medicineId ?: ""}"
     }

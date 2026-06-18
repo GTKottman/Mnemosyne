@@ -87,6 +87,58 @@ fun PlacesDirectoryScreen(
 }
 
 @Composable
+fun PlacesDirectoryContent(
+    modifier: Modifier = Modifier,
+    onPlaceClick: (String) -> Unit,
+    viewModel: PlacesViewModel = hiltViewModel()
+) {
+    val places by viewModel.places.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf<SavedPlace?>(null) }
+
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(12.dp))
+        if (places.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(56.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text("No places yet", style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Tap + to add a place", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(places, key = { it.id }) { place ->
+                    PlaceCard(place = place, onClick = { onPlaceClick(place.id) },
+                        onDelete = { showDeleteDialog = place })
+                }
+                item { Spacer(Modifier.height(80.dp)) }
+            }
+        }
+    }
+
+    showDeleteDialog?.let { place ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete ${place.label}?") },
+            text = { Text("This will remove the place. Past entries that reference it will still be linked.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deletePlace(place.id)
+                    showDeleteDialog = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
 private fun PlaceCard(place: SavedPlace, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),

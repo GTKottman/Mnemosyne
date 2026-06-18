@@ -146,6 +146,116 @@ fun MedicineListScreen(
 }
 
 @Composable
+fun MedicineListContent(
+    modifier: Modifier = Modifier,
+    onMedicineClick: (String) -> Unit,
+    onEditMedicine: (String) -> Unit,
+    viewModel: MedicineListViewModel = hiltViewModel()
+) {
+    val medicinesWithBottles by viewModel.medicinesWithBottles.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf<Medicine?>(null) }
+
+    val active = medicinesWithBottles.filter { it.medicine.isActive }
+    val inactive = medicinesWithBottles.filter { !it.medicine.isActive }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        if (active.isEmpty() && inactive.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Medication,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "No medicines yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Tap + to add a medicine or supplement",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
+
+        if (active.isNotEmpty()) {
+            item {
+                Text(
+                    "Active",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+            }
+            items(active) { mwb ->
+                MedicineCard(
+                    item = mwb,
+                    onClick = { onMedicineClick(mwb.medicine.id) },
+                    onEdit = { onEditMedicine(mwb.medicine.id) },
+                    onToggleActive = { viewModel.toggleActive(mwb.medicine) },
+                    onDelete = { showDeleteDialog = mwb.medicine },
+                    onTakePill = { viewModel.takePill(mwb.medicine.id) }
+                )
+            }
+        }
+
+        if (inactive.isNotEmpty()) {
+            item {
+                Text(
+                    "Inactive",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                )
+            }
+            items(inactive) { mwb ->
+                MedicineCard(
+                    item = mwb,
+                    onClick = { onMedicineClick(mwb.medicine.id) },
+                    onEdit = { onEditMedicine(mwb.medicine.id) },
+                    onToggleActive = { viewModel.toggleActive(mwb.medicine) },
+                    onDelete = { showDeleteDialog = mwb.medicine },
+                    onTakePill = { viewModel.takePill(mwb.medicine.id) }
+                )
+            }
+        }
+    }
+
+    showDeleteDialog?.let { medicine ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete ${medicine.name}?") },
+            text = { Text("This will permanently delete the medicine and all its bottle and dose history.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteMedicine(medicine.id)
+                    showDeleteDialog = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
 private fun MedicineCard(
     item: MedicineWithBottle,
     onClick: () -> Unit,

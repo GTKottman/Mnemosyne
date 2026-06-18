@@ -13,16 +13,18 @@ import androidx.navigation.navArgument
 import com.gtnoo.mnemosyne.presentation.dashboard.VisualizationDashboardScreen
 import com.gtnoo.mnemosyne.presentation.entry.DailyEntryFormScreen
 import com.gtnoo.mnemosyne.presentation.entry.EntryDetailScreen
-import com.gtnoo.mnemosyne.presentation.history.EntryHistoryScreen
+import com.gtnoo.mnemosyne.presentation.history.JournalScreen
 import com.gtnoo.mnemosyne.presentation.home.HomeScreen
 import com.gtnoo.mnemosyne.presentation.importexport.ImportExportScreen
 import com.gtnoo.mnemosyne.presentation.interaction.InteractionFormScreen
 import com.gtnoo.mnemosyne.presentation.medicine.AddMedicineScreen
 import com.gtnoo.mnemosyne.presentation.medicine.MedicineDetailScreen
-import com.gtnoo.mnemosyne.presentation.medicine.MedicineListScreen
 import com.gtnoo.mnemosyne.presentation.onboarding.OnboardingScreen
-import com.gtnoo.mnemosyne.presentation.people.*
-import com.gtnoo.mnemosyne.presentation.places.*
+import com.gtnoo.mnemosyne.presentation.people.AddEditPersonScreen
+import com.gtnoo.mnemosyne.presentation.people.PersonAnalyticsScreen
+import com.gtnoo.mnemosyne.presentation.people.PersonDetailScreen
+import com.gtnoo.mnemosyne.presentation.places.AddEditPlaceScreen
+import com.gtnoo.mnemosyne.presentation.places.PlaceDetailScreen
 import com.gtnoo.mnemosyne.presentation.settings.SettingsScreen
 import com.gtnoo.mnemosyne.presentation.similarity.SimilarityResultsScreen
 import java.time.LocalDate
@@ -40,9 +42,6 @@ fun MnemosyneNavGraph(
     val bottomItems = listOf(
         BottomNavItem("Home", Icons.Default.Home, Screen.Home),
         BottomNavItem("Journal", Icons.Default.Book, Screen.EntryHistory),
-        BottomNavItem("People", Icons.Default.People, Screen.PeopleDirectory),
-        BottomNavItem("Places", Icons.Default.LocationOn, Screen.PlacesDirectory),
-        BottomNavItem("Medicines", Icons.Default.Medication, Screen.MedicineList),
         BottomNavItem("Dashboard", Icons.Default.BarChart, Screen.VisualizationDashboard)
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -119,9 +118,16 @@ fun MnemosyneNavGraph(
                 )
             }
             composable(Screen.EntryHistory.route) {
-                EntryHistoryScreen(
+                JournalScreen(
                     onEntryClick = { navController.navigate(Screen.EntryDetail.create(it)) },
-                    onNewEntry = { navController.navigate(Screen.DailyEntryForm.create()) }
+                    onNewEntry = { navController.navigate(Screen.DailyEntryForm.create()) },
+                    onPersonClick = { navController.navigate(Screen.PersonDetail.create(it)) },
+                    onAddPerson = { navController.navigate(Screen.AddEditPerson.create()) },
+                    onPlaceClick = { navController.navigate(Screen.PlaceDetail.create(it)) },
+                    onAddPlace = { navController.navigate(Screen.AddEditPlace.create()) },
+                    onMedicineClick = { navController.navigate(Screen.MedicineDetail.create(it)) },
+                    onAddMedicine = { navController.navigate(Screen.AddEditMedicine.create()) },
+                    onEditMedicine = { navController.navigate(Screen.AddEditMedicine.create(it)) }
                 )
             }
             composable(
@@ -168,12 +174,6 @@ fun MnemosyneNavGraph(
                     onSimilarity = { navController.navigate(Screen.SimilarityResults.create(it)) }
                 )
             }
-            composable(Screen.PeopleDirectory.route) {
-                PeopleDirectoryScreen(
-                    onAddPerson = { navController.navigate(Screen.AddEditPerson.create()) },
-                    onPersonClick = { navController.navigate(Screen.PersonDetail.create(it)) }
-                )
-            }
             composable(
                 route = Screen.AddEditPerson.route,
                 arguments = listOf(navArgument("personId") { type = NavType.StringType; defaultValue = "" })
@@ -194,12 +194,6 @@ fun MnemosyneNavGraph(
             composable(Screen.PersonAnalytics.route) { backStackEntry ->
                 val personId = backStackEntry.arguments?.getString("personId") ?: return@composable
                 PersonAnalyticsScreen(personId = personId, onBack = { navController.popBackStack() })
-            }
-            composable(Screen.PlacesDirectory.route) {
-                PlacesDirectoryScreen(
-                    onAddPlace = { navController.navigate(Screen.AddEditPlace.create()) },
-                    onPlaceClick = { navController.navigate(Screen.PlaceDetail.create(it)) }
-                )
             }
             composable(
                 route = Screen.AddEditPlace.route,
@@ -233,13 +227,6 @@ fun MnemosyneNavGraph(
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Screen.MedicineList.route) {
-                MedicineListScreen(
-                    onAddMedicine = { navController.navigate(Screen.AddEditMedicine.create()) },
-                    onMedicineClick = { navController.navigate(Screen.MedicineDetail.create(it)) },
-                    onEditMedicine = { navController.navigate(Screen.AddEditMedicine.create(it)) }
-                )
             }
             composable(
                 route = Screen.AddEditMedicine.route,
